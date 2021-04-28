@@ -24,7 +24,7 @@ pub trait Method: Debug {
     // }
 }
 
-#[derive(Serialize, Deserialize,Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Protocol {
     #[serde(rename = "version")]
     pub version: Version,
@@ -33,7 +33,7 @@ pub struct Protocol {
     pub domains: Vec<Domain>,
 }
 
-#[derive(Serialize, Deserialize,Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Domain {
     #[serde(rename = "domain")]
     pub domain: String,
@@ -57,7 +57,7 @@ pub struct Domain {
     pub description: Option<String>,
 }
 
-#[derive(Serialize, Deserialize,Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Command {
     #[serde(rename = "name")]
     pub name: String,
@@ -81,7 +81,7 @@ pub struct Command {
     pub redirect: Option<String>,
 }
 
-#[derive(Serialize, Deserialize,Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Parameter {
     #[serde(rename = "name")]
     pub name: String,
@@ -111,7 +111,7 @@ pub struct Parameter {
     pub deprecated: Option<bool>,
 }
 
-#[derive(Serialize, Deserialize,Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Items {
     #[serde(rename = "type")]
     pub items_type: Option<TypeEnum>,
@@ -120,7 +120,7 @@ pub struct Items {
     pub items_ref: Option<String>,
 }
 
-#[derive(Serialize, Deserialize,Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Event {
     #[serde(rename = "name")]
     pub name: String,
@@ -138,7 +138,7 @@ pub struct Event {
     pub deprecated: Option<bool>,
 }
 
-#[derive(Serialize, Deserialize,Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TypeElement {
     #[serde(rename = "id")]
     pub id: String,
@@ -165,7 +165,7 @@ pub struct TypeElement {
     pub deprecated: Option<bool>,
 }
 
-#[derive(Serialize, Deserialize,Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Version {
     #[serde(rename = "major")]
     pub major: String,
@@ -174,7 +174,7 @@ pub struct Version {
     pub minor: String,
 }
 
-#[derive(Serialize, Deserialize,Debug,Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum TypeEnum {
     #[serde(rename = "any")]
     Any,
@@ -197,4 +197,3 @@ pub enum TypeEnum {
     #[serde(rename = "string")]
     String,
 }
-
