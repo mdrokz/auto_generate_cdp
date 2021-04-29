@@ -1,2 +1,4 @@
 /target
 protocol.rs
+browser_protocol.json
+js_protocol.json
