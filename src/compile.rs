@@ -544,13 +544,13 @@ pub fn get_parameters(
                         if let Some(typ) = type_type {
                             if let Some(v) = parameter.optional {
                                 let v = quote! {
-                                    pub #p_name: Option<Vec<#typ>>,
+                                    pub #p_name: Option<#typ>,
                                 };
 
                                 parameter_object.push(v);
                             } else {
                                 let v = quote! {
-                                    pub #p_name: Vec<#typ>,
+                                    pub #p_name: #typ,
                                 };
 
                                 parameter_object.push(v);
