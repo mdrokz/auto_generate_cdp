@@ -203,7 +203,7 @@ fn get_types(
                         }
                     }
                     objects.push(quote! {
-                            #[derive(Serialize, Debug)]
+                            #[derive(Deserialize,Serialize, Debug)]
                             #[serde(rename_all = "camelCase")]
                             pub struct #name {
                                 #(#object)*
@@ -242,7 +242,7 @@ fn get_types(
                         }
 
                         let typ_enum = quote! {
-                            #[derive(Serialize, Debug)]
+                            #[derive(Deserialize,Serialize, Debug)]
                             #[serde(rename_all = "camelCase")]
                             pub enum #name {
                                 #(#enum_tokens)*
@@ -289,7 +289,7 @@ fn get_types(
 }
 
 pub fn get_commands(
-    commands: Vec<Command>,
+    commands: &Vec<Command>,
     dependencies: &mut Vec<TokenStream>,
     command_objects: &mut Vec<TokenStream>,
     parameter_objects: &mut Vec<TokenStream>,
@@ -382,7 +382,7 @@ pub fn get_commands(
                 }
             }
             command_objects.push(quote! {
-                #[derive(Serialize, Debug)]
+                #[derive(Deserialize,Serialize, Debug)]
                 #[serde(rename_all = "camelCase")]
                 pub struct #name {
                     #(#command_object)*
@@ -390,7 +390,7 @@ pub fn get_commands(
             });
         } else {
             command_objects.push(quote! {
-                #[derive(Serialize, Debug)]
+                #[derive(Deserialize,Serialize, Debug)]
                 #[serde(rename_all = "camelCase")]
                 pub struct #name {}
             });
@@ -401,7 +401,7 @@ pub fn get_commands(
 }
 
 pub fn get_parameters(
-    command: Command,
+    command: &Command,
     dependencies: &mut Vec<TokenStream>,
     parameter_objects: &mut Vec<TokenStream>,
 ) {
@@ -496,6 +496,21 @@ pub fn get_parameters(
                         .map(|v| Ident::new(v, Span::call_site()))
                         .collect::<Vec<Ident>>();
 
+                    let v: Vec<&TokenStream> = dependencies
+                        .iter()
+                        .filter(|v| {
+                            let r = p_ref.split(".").collect::<Vec<&str>>()[0];
+                            v.to_string().contains(r)
+                        })
+                        .collect();
+
+                    if v.len() <= 0 {
+                        let first_dep = &dep[0];
+                        dependencies.push(quote! {
+                            use super::#first_dep;
+                        });
+                    }
+
                     let v = quote! {
                         pub #ret_type: #(#dep)::*,
                     };
@@ -513,7 +528,7 @@ pub fn get_parameters(
             }
         }
         parameter_objects.push(quote! {
-            #[derive(Serialize, Debug)]
+            #[derive(Deserialize,Serialize, Debug)]
             #[serde(rename_all = "camelCase")]
             pub struct #name {
                 #(#parameter_object)*
@@ -521,7 +536,7 @@ pub fn get_parameters(
         });
     } else {
         parameter_objects.push(quote! {
-            #[derive(Serialize, Debug)]
+            #[derive(Deserialize,Serialize, Debug)]
             #[serde(rename_all = "camelCase")]
             pub struct #name {}
         });
@@ -529,7 +544,15 @@ pub fn get_parameters(
 }
 
 pub fn compile_cdp_json(file_name: &str) -> Vec<TokenStream> {
-    let json = fs::read_to_string(file_name).unwrap();
+    let url = format!(
+        "https://raw.githubusercontent.com/ChromeDevTools/devtools-protocol/master/json/{}",
+        file_name
+    );
+
+    let json = reqwest::blocking::get(url)
+        .expect("incorrect file name")
+        .text()
+        .unwrap();
 
     let protocol: Protocol = serde_json::from_str(&json).unwrap();
 
@@ -550,6 +573,8 @@ pub fn compile_cdp_json(file_name: &str) -> Vec<TokenStream> {
         let mut command_objects = Vec::new();
 
         let mut parameter_objects = Vec::new();
+
+        let mut method_impls = Vec::new();
 
         if let Some(deps) = &dom.dependencies {
             for dep in deps
@@ -579,11 +604,35 @@ pub fn compile_cdp_json(file_name: &str) -> Vec<TokenStream> {
         }
 
         get_commands(
-            dom.commands,
+            &dom.commands,
             &mut dependencies,
             &mut command_objects,
             &mut parameter_objects,
         );
+
+        for command in &dom.commands {
+            let mut cmd_name = command.name.clone();
+            let mut method_name = String::from(dom.domain.clone());
+            method_name.push_str(&format!(".{}", cmd_name));
+            cmd_name.first_uppercase();
+
+            let method_ident = Ident::new(&cmd_name, Span::call_site());
+
+            let mut method_return_obj = cmd_name.clone();
+
+            method_return_obj.push_str("ReturnObject");
+
+            let method_return_obj = Ident::new(&method_return_obj, Span::call_site());
+
+            let v = quote! {
+                impl Method for #method_ident {
+                    const NAME: &'static str = #method_name;
+                    type ReturnObject = #method_return_obj;
+                }
+            };
+
+            method_impls.push(v);
+        }
 
         let name = Ident::new(&dom.domain, Span::call_site());
 
@@ -593,6 +642,7 @@ pub fn compile_cdp_json(file_name: &str) -> Vec<TokenStream> {
                 use serde::{Deserialize, Serialize};
                 use serde_json::Value as Json;
                 use super::types::*;
+                use crate::Method;
 
                 #(#dependencies)*
 
@@ -606,6 +656,7 @@ pub fn compile_cdp_json(file_name: &str) -> Vec<TokenStream> {
 
                 #(#command_objects)*
 
+                #(#method_impls)*
 
             }
         });
