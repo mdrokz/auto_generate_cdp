@@ -639,7 +639,6 @@ pub fn compile_cdp_json(file_name: &str) -> Vec<TokenStream> {
                 use serde::{Deserialize, Serialize};
                 use serde_json::Value as Json;
                 use super::types::*;
-                use crate::Method;
 
                 #(#dependencies)*
 

@@ -32,6 +32,49 @@ pub fn init() {
                 mod types {
                     pub type JsInt = i32;
                     pub type JsUInt = u32;
+
+                    pub type WindowId = JsUInt;
+
+                    pub type CallId = JsUInt;
+
+                    #[derive(Serialize, Debug)]
+                    pub struct MethodCall<T>
+                    where
+                    T: Debug,
+                    {
+                        #[serde(rename = "method")]
+                        method_name: &'static str,
+                        pub id: CallId,
+                        params: T,
+                    }
+
+                    impl<T> MethodCall<T>
+                    where
+                    T: Debug,
+                    {
+                        pub fn get_params(&self) -> &T {
+                        &self.params
+                        }
+                    }
+
+                    pub trait Method: Debug {
+                    const NAME: &'static str;
+
+                    type ReturnObject: serde::de::DeserializeOwned + std::fmt::Debug;
+
+
+                    fn to_method_call(self, call_id: CallId) -> MethodCall<Self>
+                    where
+                    Self: std::marker::Sized,
+                    {
+                        MethodCall {
+                            id: call_id,
+                             params: self,
+                            method_name: Self::NAME,
+                            }
+                    }
+
+                    }
                 }
 
                 #(#js_mods)*

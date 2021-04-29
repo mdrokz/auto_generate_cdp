@@ -7,7 +7,7 @@ experimental crate to generate the Chrome Devtools Protocol.
 Cargo.toml
 ```
 [build-dependencies]
-auto_generate_cdp = "0.1.1"
+auto_generate_cdp = "0.1.2"
 ```
 
 build.rs
