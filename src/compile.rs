@@ -55,7 +55,13 @@ fn get_types(
     match property_type {
         PropertyType::Param(param) => {
             let name = Ident::new(
-                &String::from(param.name.clone().replace("type", "Type")),
+                &String::from(
+                    param
+                        .name
+                        .clone()
+                        .to_case(Case::Snake)
+                        .replace("type", "Type"),
+                ),
                 Span::call_site(),
             );
 
@@ -65,10 +71,17 @@ fn get_types(
 
                     if let Some(p_ref) = &items.items_ref {
                         if let Some(p_type) = previous_type {
-                            let v = quote! {
-                                pub #name: #p_type<#p_ref>,
-                            };
-                            object.push(v);
+                            if let Some(_) = param.optional {
+                                let v = quote! {
+                                    pub #name: Option<#p_type<#p_ref>>,
+                                };
+                                object.push(v);
+                            } else {
+                                let v = quote! {
+                                    pub #name: #p_type<#p_ref>,
+                                };
+                                object.push(v);
+                            }
                         }
                     } else {
                         let p_type = items.items_type.as_ref().unwrap().clone();
@@ -90,15 +103,29 @@ fn get_types(
 
                     if let Some(typ) = type_type {
                         if let Some(p_type) = previous_type {
-                            let v = quote! {
-                                pub #name: #p_type<#typ>,
-                            };
-                            object.push(v);
+                            if let Some(_) = param.optional {
+                                let v = quote! {
+                                    pub #name: Option<#p_type<#typ>>,
+                                };
+                                object.push(v);
+                            } else {
+                                let v = quote! {
+                                    pub #name: #p_type<#typ>,
+                                };
+                                object.push(v);
+                            }
                         } else {
-                            let v = quote! {
-                                pub #name: #typ,
-                            };
-                            object.push(v);
+                            if let Some(_) = param.optional {
+                                let v = quote! {
+                                    pub #name: Option<#typ>,
+                                };
+                                object.push(v);
+                            } else {
+                                let v = quote! {
+                                    pub #name: #typ,
+                                };
+                                object.push(v);
+                            }
                         }
                     }
                 }
@@ -149,7 +176,7 @@ fn get_types(
                                 ),
                                 None => {
                                     let p_name = Ident::new(
-                                        &property.name.replace("type", "Type"),
+                                        &property.name.to_case(Case::Snake).replace("type", "Type"),
                                         Span::call_site(),
                                     );
 
@@ -176,22 +203,40 @@ fn get_types(
                                         }
                                     }
 
+                                    if let Some(_) = property.optional {
+                                    } else {
+                                    }
+
                                     if p_ref == type_element.id {
                                         let p_ref = Ident::new(&p_ref, Span::call_site());
-                                        let v = quote! {
-                                            pub #p_name: Box<#p_ref>,
-                                        };
-                                        object.push(v);
+                                        if let Some(_) = property.optional {
+                                            let v = quote! {
+                                                pub #p_name: Option<Box<#p_ref>>,
+                                            };
+                                            object.push(v);
+                                        } else {
+                                            let v = quote! {
+                                                pub #p_name: Box<#p_ref>,
+                                            };
+                                            object.push(v);
+                                        }
                                     } else {
                                         let dep = p_ref
                                             .split(".")
                                             .map(|v| Ident::new(v, Span::call_site()))
                                             .collect::<Vec<Ident>>();
 
-                                        let v = quote! {
-                                            pub #p_name: #(#dep)::*,
-                                        };
-                                        object.push(v);
+                                        if let Some(_) = property.optional {
+                                            let v = quote! {
+                                                pub #p_name: Option<#(#dep)::*>,
+                                            };
+                                            object.push(v);
+                                        } else {
+                                            let v = quote! {
+                                                pub #p_name: #(#dep)::*,
+                                            };
+                                            object.push(v);
+                                        }
                                     }
                                 }
                             };
@@ -299,7 +344,10 @@ pub fn get_commands(
 
             for return_type in returns {
                 if let Some(param_type) = return_type.parameter_type {
-                    let name = Ident::new(&return_type.name.clone(), Span::call_site());
+                    let name = Ident::new(
+                        &return_type.name.clone().to_case(Case::Snake),
+                        Span::call_site(),
+                    );
 
                     match param_type {
                         TypeEnum::Array => {
@@ -352,7 +400,8 @@ pub fn get_commands(
                 } else {
                     let p_ref = &return_type.parameter_ref.clone().unwrap();
 
-                    let ret_type = Ident::new(&return_type.name, Span::call_site());
+                    let ret_type =
+                        Ident::new(&return_type.name.to_case(Case::Snake), Span::call_site());
 
                     if p_ref.contains(".") {
                         let dep = p_ref
@@ -410,57 +459,76 @@ pub fn get_parameters(
             let p_name = Ident::new(
                 &parameter
                     .name
+                    .to_case(Case::Snake)
                     .replace("type", "Type")
                     .replace("override", "Override"),
                 Span::call_site(),
             );
 
-            if let Some(v) = parameter.optional {
-            } else {
-                if let Some(param_type) = parameter.parameter_type {
-                    match param_type {
-                        TypeEnum::Array => {
-                            let items = parameter.items.as_ref().unwrap();
+            if let Some(param_type) = parameter.parameter_type {
+                match param_type {
+                    TypeEnum::Array => {
+                        let items = parameter.items.as_ref().unwrap();
 
-                            if let Some(ref_type) = items.items_ref.clone() {
-                                if ref_type.contains(".") {
-                                    let dep = ref_type
-                                        .split(".")
-                                        .map(|v| Ident::new(v, Span::call_site()))
-                                        .collect::<Vec<Ident>>();
+                        if let Some(ref_type) = items.items_ref.clone() {
+                            if ref_type.contains(".") {
+                                let dep = ref_type
+                                    .split(".")
+                                    .map(|v| Ident::new(v, Span::call_site()))
+                                    .collect::<Vec<Ident>>();
 
-                                    let v: Vec<&TokenStream> = dependencies
-                                        .iter()
-                                        .filter(|v| {
-                                            let r = ref_type.split(".").collect::<Vec<&str>>()[0];
-                                            v.to_string().contains(r)
-                                        })
-                                        .collect();
+                                let v: Vec<&TokenStream> = dependencies
+                                    .iter()
+                                    .filter(|v| {
+                                        let r = ref_type.split(".").collect::<Vec<&str>>()[0];
+                                        v.to_string().contains(r)
+                                    })
+                                    .collect();
 
-                                    if v.len() <= 0 {
-                                        let first_dep = &dep[0];
-                                        dependencies.push(quote! {
-                                            use super::#first_dep;
-                                        });
-                                    }
+                                if v.len() <= 0 {
+                                    let first_dep = &dep[0];
+                                    dependencies.push(quote! {
+                                        use super::#first_dep;
+                                    });
+                                }
 
+                                if let Some(v) = parameter.optional {
+                                    let v = quote! {
+                                        pub #p_name: Option<#(#dep)::*>,
+                                    };
+                                    parameter_object.push(v);
+                                } else {
                                     let v = quote! {
                                         pub #p_name: #(#dep)::*,
                                     };
+                                    parameter_object.push(v);
+                                }
+                            } else {
+                                let ref_type = Ident::new(&ref_type, Span::call_site());
 
+                                if let Some(v) = parameter.optional {
+                                    let v = quote! {
+                                        pub #p_name: Option<Vec<#ref_type>>,
+                                    };
                                     parameter_object.push(v);
                                 } else {
-                                    let ref_type = Ident::new(&ref_type, Span::call_site());
-
                                     let v = quote! {
                                         pub #p_name: Vec<#ref_type>,
                                     };
                                     parameter_object.push(v);
                                 }
-                            } else {
-                                let type_type: Option<Ident> = items.items_type.unwrap().into();
+                            }
+                        } else {
+                            let type_type: Option<Ident> = items.items_type.unwrap().into();
 
-                                if let Some(typ) = type_type {
+                            if let Some(typ) = type_type {
+                                if let Some(v) = parameter.optional {
+                                    let v = quote! {
+                                        pub #p_name: Option<Vec<#typ>>,
+                                    };
+
+                                    parameter_object.push(v);
+                                } else {
                                     let v = quote! {
                                         pub #p_name: Vec<#typ>,
                                     };
@@ -469,53 +537,77 @@ pub fn get_parameters(
                                 }
                             }
                         }
-                        _ => {
-                            let type_type: Option<Ident> = param_type.into();
+                    }
+                    _ => {
+                        let type_type: Option<Ident> = param_type.into();
 
-                            if let Some(typ) = type_type {
+                        if let Some(typ) = type_type {
+                            if let Some(v) = parameter.optional {
                                 let v = quote! {
-                                    pub #p_name: #typ,
+                                    pub #p_name: Option<Vec<#typ>>,
+                                };
+
+                                parameter_object.push(v);
+                            } else {
+                                let v = quote! {
+                                    pub #p_name: Vec<#typ>,
                                 };
 
                                 parameter_object.push(v);
                             }
                         }
                     }
-                } else {
-                    let p_ref = &parameter.parameter_ref.clone().unwrap();
+                }
+            } else {
+                let p_ref = &parameter.parameter_ref.clone().unwrap();
 
-                    let ret_type =
-                        Ident::new(&parameter.name.replace("type", "Type"), Span::call_site());
+                let ret_type = Ident::new(
+                    &parameter.name.to_case(Case::Snake).replace("type", "Type"),
+                    Span::call_site(),
+                );
 
-                    if p_ref.contains(".") {
-                        let dep = p_ref
-                            .split(".")
-                            .map(|v| Ident::new(v, Span::call_site()))
-                            .collect::<Vec<Ident>>();
+                if p_ref.contains(".") {
+                    let dep = p_ref
+                        .split(".")
+                        .map(|v| Ident::new(v, Span::call_site()))
+                        .collect::<Vec<Ident>>();
 
-                        let v: Vec<&TokenStream> = dependencies
-                            .iter()
-                            .filter(|v| {
-                                let r = p_ref.split(".").collect::<Vec<&str>>()[0];
-                                v.to_string().contains(r)
-                            })
-                            .collect();
+                    let v: Vec<&TokenStream> = dependencies
+                        .iter()
+                        .filter(|v| {
+                            let r = p_ref.split(".").collect::<Vec<&str>>()[0];
+                            v.to_string().contains(r)
+                        })
+                        .collect();
 
-                        if v.len() <= 0 {
-                            let first_dep = &dep[0];
-                            dependencies.push(quote! {
-                                use super::#first_dep;
-                            });
-                        }
+                    if v.len() <= 0 {
+                        let first_dep = &dep[0];
+                        dependencies.push(quote! {
+                            use super::#first_dep;
+                        });
+                    }
 
+                    if let Some(_) = parameter.optional {
+                        let v = quote! {
+                            pub #ret_type: Option<#(#dep)::*>,
+                        };
+                        parameter_object.push(v);
+                    } else {
                         let v = quote! {
                             pub #ret_type: #(#dep)::*,
+                        };
+                        parameter_object.push(v);
+                    }
+                } else {
+                    let p_ref = Ident::new(&p_ref.replace("type", "Type"), Span::call_site());
+
+                    if let Some(_) = parameter.optional {
+                        let v = quote! {
+                            pub #ret_type: Option<#p_ref>,
                         };
 
                         parameter_object.push(v);
                     } else {
-                        let p_ref = Ident::new(&p_ref.replace("type", "Type"), Span::call_site());
-
                         let v = quote! {
                             pub #ret_type: #p_ref,
                         };
