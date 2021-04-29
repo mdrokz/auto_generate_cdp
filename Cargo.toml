@@ -1,18 +1,25 @@
 [package]
-name = "auto_generate_cdp"
-version = "0.1.0"
 authors = ["mdrokz <mohammadmunshi@gmail.com>"]
+categories = ["api-bindings", "development-tools::build-utils"]
+description = "experimental crate to generate the Chrome Devtools Protocol."
 edition = "2018"
+keywords = ["macros", "cdp", "devtools", "chrome", "library", "build-tool"]
+license-file = "LICENSE"
+name = "auto_generate_cdp"
+readme = "README.md"
+repository = "https://github.com/mdrokz/auto_generate_cdp"
+version = "0.1.0"
+exclude = [".vscode/*"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
-serde_json = '1.0.64'
-quote = '1.0.9'
-reqwest = { version = "0.11", features = ["blocking"] }
-proc-macro2 = '1.0.26'
 convert_case = '0.4.0'
+proc-macro2 = '1.0.26'
+quote = '1.0.9'
+reqwest = {version = "0.11", features = ["blocking"]}
+serde = {version = "1.0", features = ["derive"]}
+serde_json = '1.0.64'
 
 [lib]
 name = "auto_generate_cdp"
