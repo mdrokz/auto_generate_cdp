@@ -1,16 +1,13 @@
 use convert_case::{Case, Casing};
 
-use crate::types::{Command, Domain, Parameter, Protocol, TypeElement, TypeEnum};
+use crate::types::{Command, Parameter, Protocol, TypeElement, TypeEnum};
 
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
 use std::{
-    fs::{self, OpenOptions},
     iter::FromIterator,
 };
-
-use std::io::prelude::*;
 
 pub trait StringUtils {
     fn first_uppercase(&mut self);
@@ -59,7 +56,7 @@ fn get_types(
 ) {
     match property_type {
         PropertyType::Param(param) => {
-            let mut name = Ident::new(
+            let name = Ident::new(
                 &String::from(param.name.clone().replace("type", "Type")),
                 Span::call_site(),
             );
@@ -110,7 +107,7 @@ fn get_types(
             }
         }
         PropertyType::Element(type_element) => {
-            let mut name = Ident::new(&type_element.id, Span::call_site());
+            let name = Ident::new(&type_element.id, Span::call_site());
 
             match type_type {
                 TypeEnum::Array => {
