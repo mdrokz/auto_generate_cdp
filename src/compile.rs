@@ -27,8 +27,8 @@ impl Into<Option<Ident>> for TypeEnum {
     fn into(self) -> Option<Ident> {
         match self {
             TypeEnum::Boolean => Some(Ident::new("bool", Span::call_site())),
-            TypeEnum::Integer => Some(Ident::new("JsInt", Span::call_site())),
-            TypeEnum::Number => Some(Ident::new("JsUInt", Span::call_site())),
+            TypeEnum::Integer => Some(Ident::new("JsUInt", Span::call_site())),
+            TypeEnum::Number => Some(Ident::new("JsInt", Span::call_site())),
             TypeEnum::String => Some(Ident::new("String", Span::call_site())),
             TypeEnum::Any => Some(Ident::new("Json", Span::call_site())),
             _ => None,
