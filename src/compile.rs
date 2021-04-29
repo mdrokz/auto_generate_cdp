@@ -5,9 +5,7 @@ use crate::types::{Command, Parameter, Protocol, TypeElement, TypeEnum};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
-use std::{
-    iter::FromIterator,
-};
+use std::iter::FromIterator;
 
 pub trait StringUtils {
     fn first_uppercase(&mut self);
@@ -417,110 +415,113 @@ pub fn get_parameters(
                 Span::call_site(),
             );
 
-            if let Some(param_type) = parameter.parameter_type {
-                match param_type {
-                    TypeEnum::Array => {
-                        let items = parameter.items.as_ref().unwrap();
+            if let Some(v) = parameter.optional {
+            } else {
+                if let Some(param_type) = parameter.parameter_type {
+                    match param_type {
+                        TypeEnum::Array => {
+                            let items = parameter.items.as_ref().unwrap();
 
-                        if let Some(ref_type) = items.items_ref.clone() {
-                            if ref_type.contains(".") {
-                                let dep = ref_type
-                                    .split(".")
-                                    .map(|v| Ident::new(v, Span::call_site()))
-                                    .collect::<Vec<Ident>>();
+                            if let Some(ref_type) = items.items_ref.clone() {
+                                if ref_type.contains(".") {
+                                    let dep = ref_type
+                                        .split(".")
+                                        .map(|v| Ident::new(v, Span::call_site()))
+                                        .collect::<Vec<Ident>>();
 
-                                let v: Vec<&TokenStream> = dependencies
-                                    .iter()
-                                    .filter(|v| {
-                                        let r = ref_type.split(".").collect::<Vec<&str>>()[0];
-                                        v.to_string().contains(r)
-                                    })
-                                    .collect();
+                                    let v: Vec<&TokenStream> = dependencies
+                                        .iter()
+                                        .filter(|v| {
+                                            let r = ref_type.split(".").collect::<Vec<&str>>()[0];
+                                            v.to_string().contains(r)
+                                        })
+                                        .collect();
 
-                                if v.len() <= 0 {
-                                    let first_dep = &dep[0];
-                                    dependencies.push(quote! {
-                                        use super::#first_dep;
-                                    });
+                                    if v.len() <= 0 {
+                                        let first_dep = &dep[0];
+                                        dependencies.push(quote! {
+                                            use super::#first_dep;
+                                        });
+                                    }
+
+                                    let v = quote! {
+                                        pub #p_name: #(#dep)::*,
+                                    };
+
+                                    parameter_object.push(v);
+                                } else {
+                                    let ref_type = Ident::new(&ref_type, Span::call_site());
+
+                                    let v = quote! {
+                                        pub #p_name: Vec<#ref_type>,
+                                    };
+                                    parameter_object.push(v);
                                 }
-
-                                let v = quote! {
-                                    pub #p_name: #(#dep)::*,
-                                };
-
-                                parameter_object.push(v);
                             } else {
-                                let ref_type = Ident::new(&ref_type, Span::call_site());
+                                let type_type: Option<Ident> = items.items_type.unwrap().into();
 
-                                let v = quote! {
-                                    pub #p_name: Vec<#ref_type>,
-                                };
-                                parameter_object.push(v);
+                                if let Some(typ) = type_type {
+                                    let v = quote! {
+                                        pub #p_name: Vec<#typ>,
+                                    };
+
+                                    parameter_object.push(v);
+                                }
                             }
-                        } else {
-                            let type_type: Option<Ident> = items.items_type.unwrap().into();
+                        }
+                        _ => {
+                            let type_type: Option<Ident> = param_type.into();
 
                             if let Some(typ) = type_type {
                                 let v = quote! {
-                                    pub #p_name: Vec<#typ>,
+                                    pub #p_name: #typ,
                                 };
 
                                 parameter_object.push(v);
                             }
                         }
                     }
-                    _ => {
-                        let type_type: Option<Ident> = param_type.into();
-
-                        if let Some(typ) = type_type {
-                            let v = quote! {
-                                pub #p_name: #typ,
-                            };
-
-                            parameter_object.push(v);
-                        }
-                    }
-                }
-            } else {
-                let p_ref = &parameter.parameter_ref.clone().unwrap();
-
-                let ret_type =
-                    Ident::new(&parameter.name.replace("type", "Type"), Span::call_site());
-
-                if p_ref.contains(".") {
-                    let dep = p_ref
-                        .split(".")
-                        .map(|v| Ident::new(v, Span::call_site()))
-                        .collect::<Vec<Ident>>();
-
-                    let v: Vec<&TokenStream> = dependencies
-                        .iter()
-                        .filter(|v| {
-                            let r = p_ref.split(".").collect::<Vec<&str>>()[0];
-                            v.to_string().contains(r)
-                        })
-                        .collect();
-
-                    if v.len() <= 0 {
-                        let first_dep = &dep[0];
-                        dependencies.push(quote! {
-                            use super::#first_dep;
-                        });
-                    }
-
-                    let v = quote! {
-                        pub #ret_type: #(#dep)::*,
-                    };
-
-                    parameter_object.push(v);
                 } else {
-                    let p_ref = Ident::new(&p_ref.replace("type", "Type"), Span::call_site());
+                    let p_ref = &parameter.parameter_ref.clone().unwrap();
 
-                    let v = quote! {
-                        pub #ret_type: #p_ref,
-                    };
+                    let ret_type =
+                        Ident::new(&parameter.name.replace("type", "Type"), Span::call_site());
 
-                    parameter_object.push(v);
+                    if p_ref.contains(".") {
+                        let dep = p_ref
+                            .split(".")
+                            .map(|v| Ident::new(v, Span::call_site()))
+                            .collect::<Vec<Ident>>();
+
+                        let v: Vec<&TokenStream> = dependencies
+                            .iter()
+                            .filter(|v| {
+                                let r = p_ref.split(".").collect::<Vec<&str>>()[0];
+                                v.to_string().contains(r)
+                            })
+                            .collect();
+
+                        if v.len() <= 0 {
+                            let first_dep = &dep[0];
+                            dependencies.push(quote! {
+                                use super::#first_dep;
+                            });
+                        }
+
+                        let v = quote! {
+                            pub #ret_type: #(#dep)::*,
+                        };
+
+                        parameter_object.push(v);
+                    } else {
+                        let p_ref = Ident::new(&p_ref.replace("type", "Type"), Span::call_site());
+
+                        let v = quote! {
+                            pub #ret_type: #p_ref,
+                        };
+
+                        parameter_object.push(v);
+                    }
                 }
             }
         }
