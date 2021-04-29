@@ -29,10 +29,10 @@ pub fn init() {
         let modv = quote! {
             pub mod cdp {
 
-                mod types {
+                pub mod types {
                     use serde::{Deserialize, Serialize};
                     use std::fmt::Debug;
-                    
+
                     pub type JsInt = i32;
                     pub type JsUInt = u32;
 
