@@ -6,8 +6,13 @@ experimental crate to generate the Chrome Devtools Protocol.
 
 Cargo.toml
 ```
+
+[dependencies]
+serde = {version = "1", features = ["derive"]}
+serde_json = '1'
+
 [build-dependencies]
-auto_generate_cdp = "0.1.2"
+auto_generate_cdp = "0.1.3"
 ```
 
 build.rs
@@ -21,4 +26,4 @@ fn main() {
 
 ```
 
-this will generate `protocol.rs` in your src folder which you can use in your crate
+this will generate `protocol.rs` when you do `cargo check` or `cargo build` in your src folder which you can use in your crate

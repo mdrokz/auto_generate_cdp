@@ -30,12 +30,16 @@ pub fn init() {
             pub mod cdp {
 
                 mod types {
+                    use serde::{Deserialize, Serialize};
+                    use std::fmt::Debug;
+                    
                     pub type JsInt = i32;
                     pub type JsUInt = u32;
 
                     pub type WindowId = JsUInt;
 
                     pub type CallId = JsUInt;
+                    
 
                     #[derive(Serialize, Debug)]
                     pub struct MethodCall<T>
