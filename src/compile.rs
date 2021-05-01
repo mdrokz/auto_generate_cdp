@@ -583,6 +583,21 @@ pub fn get_parameters(
                             }
                         }
                     }
+                    TypeEnum::String => {
+                        if let Some(_) = parameter.optional {
+                            let v = quote! {
+                                pub #p_name: Option<&'static str>,
+                            };
+
+                            parameter_object.push(v);
+                        } else {
+                            let v = quote! {
+                                pub #p_name: &'static str,
+                            };
+
+                            parameter_object.push(v);
+                        }
+                    }
                     _ => {
                         let type_type: Option<Ident> = param_type.into();
 
