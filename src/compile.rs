@@ -360,28 +360,51 @@ pub fn get_commands(
                                         .map(|v| Ident::new(v, Span::call_site()))
                                         .collect::<Vec<Ident>>();
 
-                                    let v = quote! {
-                                        pub #name: #(#dep)::*,
-                                    };
+                                    if let Some(_) = return_type.optional {
+                                        let v = quote! {
+                                            pub #name: Option<#(#dep)::*>,
+                                        };
 
-                                    command_object.push(v);
+                                        command_object.push(v);
+                                    } else {
+                                        let v = quote! {
+                                            pub #name: #(#dep)::*,
+                                        };
+
+                                        command_object.push(v);
+                                    }
                                 } else {
                                     let ref_type = Ident::new(&ref_type, Span::call_site());
 
-                                    let v = quote! {
-                                        pub #name: Vec<#ref_type>,
-                                    };
-                                    command_object.push(v);
+                                    if let Some(_) = return_type.optional {
+                                        let v = quote! {
+                                            pub #name: Option<Vec<#ref_type>>,
+                                        };
+                                        command_object.push(v);
+                                    } else {
+                                        let v = quote! {
+                                            pub #name: Vec<#ref_type>,
+                                        };
+                                        command_object.push(v);
+                                    }
                                 }
                             } else {
                                 let type_type: Option<Ident> = items.items_type.unwrap().into();
 
                                 if let Some(typ) = type_type {
-                                    let v = quote! {
-                                        pub #name: Vec<#typ>,
-                                    };
+                                    if let Some(_) = return_type.optional {
+                                        let v = quote! {
+                                            pub #name: Option<Vec<#typ>>,
+                                        };
 
-                                    command_object.push(v);
+                                        command_object.push(v);
+                                    } else {
+                                        let v = quote! {
+                                            pub #name: Vec<#typ>,
+                                        };
+
+                                        command_object.push(v);
+                                    }
                                 }
                             }
                         }
@@ -389,11 +412,19 @@ pub fn get_commands(
                             let type_type: Option<Ident> = param_type.into();
 
                             if let Some(typ) = type_type {
-                                let v = quote! {
-                                    pub #name: #typ,
-                                };
+                                if let Some(_) = return_type.optional {
+                                    let v = quote! {
+                                        pub #name: Option<#typ>,
+                                    };
 
-                                command_object.push(v);
+                                    command_object.push(v);
+                                } else {
+                                    let v = quote! {
+                                        pub #name: #typ,
+                                    };
+
+                                    command_object.push(v);
+                                }
                             }
                         }
                     }
@@ -409,19 +440,33 @@ pub fn get_commands(
                             .map(|v| Ident::new(v, Span::call_site()))
                             .collect::<Vec<Ident>>();
 
-                        let v = quote! {
-                            pub #ret_type: #(#dep)::*,
-                        };
-
-                        command_object.push(v);
+                        if let Some(_) = return_type.optional {
+                            let v = quote! {
+                                pub #ret_type: Option<#(#dep)::*>,
+                            };
+                            command_object.push(v);
+                        } else {
+                            let v = quote! {
+                                pub #ret_type: #(#dep)::*,
+                            };
+                            command_object.push(v);
+                        }
                     } else {
                         let p_ref = Ident::new(&p_ref, Span::call_site());
 
-                        let v = quote! {
-                            pub #ret_type: #p_ref,
-                        };
+                        if let Some(_) = return_type.optional {
+                            let v = quote! {
+                                pub #ret_type: Option<#p_ref>,
+                            };
 
-                        command_object.push(v);
+                            command_object.push(v);
+                        } else {
+                            let v = quote! {
+                                pub #ret_type: #p_ref,
+                            };
+
+                            command_object.push(v);
+                        }
                     }
                 }
             }
@@ -492,7 +537,7 @@ pub fn get_parameters(
                                     });
                                 }
 
-                                if let Some(v) = parameter.optional {
+                                if let Some(_) = parameter.optional {
                                     let v = quote! {
                                         pub #p_name: Option<#(#dep)::*>,
                                     };
@@ -506,7 +551,7 @@ pub fn get_parameters(
                             } else {
                                 let ref_type = Ident::new(&ref_type, Span::call_site());
 
-                                if let Some(v) = parameter.optional {
+                                if let Some(_) = parameter.optional {
                                     let v = quote! {
                                         pub #p_name: Option<Vec<#ref_type>>,
                                     };
@@ -542,7 +587,7 @@ pub fn get_parameters(
                         let type_type: Option<Ident> = param_type.into();
 
                         if let Some(typ) = type_type {
-                            if let Some(v) = parameter.optional {
+                            if let Some(_) = parameter.optional {
                                 let v = quote! {
                                     pub #p_name: Option<#typ>,
                                 };
