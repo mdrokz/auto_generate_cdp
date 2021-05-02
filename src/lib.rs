@@ -39,7 +39,7 @@ pub fn init() {
                     pub type WindowId = JsUInt;
 
                     pub type CallId = JsUInt;
-                    
+
 
                     #[derive(Serialize, Debug)]
                     pub struct MethodCall<T>

@@ -12,7 +12,7 @@ serde = {version = "1", features = ["derive"]}
 serde_json = '1'
 
 [build-dependencies]
-auto_generate_cdp = "0.1.3"
+auto_generate_cdp = "0.1.11"
 ```
 
 build.rs

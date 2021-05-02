@@ -333,6 +333,7 @@ pub fn get_commands(
     dependencies: &mut Vec<TokenStream>,
     command_objects: &mut Vec<TokenStream>,
     parameter_objects: &mut Vec<TokenStream>,
+    enums: &mut Vec<TokenStream>,
 ) {
     for command in commands {
         let mut name = command.name.clone();
@@ -485,7 +486,7 @@ pub fn get_commands(
             });
         }
 
-        get_parameters(command, dependencies, parameter_objects);
+        get_parameters(command, dependencies, parameter_objects, enums);
     }
 }
 
@@ -493,6 +494,7 @@ pub fn get_parameters(
     command: &Command,
     dependencies: &mut Vec<TokenStream>,
     parameter_objects: &mut Vec<TokenStream>,
+    enums: &mut Vec<TokenStream>,
 ) {
     let mut name = command.name.clone();
     name.first_uppercase();
@@ -584,18 +586,78 @@ pub fn get_parameters(
                         }
                     }
                     TypeEnum::String => {
-                        if let Some(_) = parameter.optional {
-                            let v = quote! {
-                                pub #p_name: Option<&'static str>,
+                        if let Some(enum_vec) = &parameter.parameter_enum {
+                            let mut enum_tokens: Vec<TokenStream> = vec![];
+
+                            for e in enum_vec {
+                                if e.contains("-") {
+                                    let enum_type = e
+                                        .split("-")
+                                        .map(|s| {
+                                            let mut upper = s.to_string();
+                                            upper.first_uppercase();
+
+                                            upper
+                                        })
+                                        .collect::<Vec<String>>()
+                                        .join("");
+
+                                    let enum_type = Ident::new(&enum_type, Span::call_site());
+
+                                    enum_tokens.push(quote! {
+                                        #enum_type,
+                                    });
+                                } else {
+                                    let enum_type =
+                                        Ident::new(&e.to_case(Case::Pascal), Span::call_site());
+                                    enum_tokens.push(quote! {
+                                        #enum_type,
+                                    });
+                                }
+                            }
+
+                            let mut enum_name = name.to_string();
+                            let mut sp = p_name.to_string();
+                            sp.first_uppercase();
+                            enum_name.push_str(&sp);
+                            enum_name.push_str("Option");
+                            let enum_name = Ident::new(&enum_name, Span::call_site());
+
+                            let typ_enum = quote! {
+                                #[derive(Deserialize,Serialize, Debug)]
+                                #[serde(rename_all = "camelCase")]
+                                pub enum #enum_name {
+                                    #(#enum_tokens)*
+                                }
                             };
 
-                            parameter_object.push(v);
+                            enums.push(typ_enum);
+
+                            if let Some(_) = parameter.optional {
+                                let v = quote! {
+                                    pub #p_name: Option<#enum_name>,
+                                };
+                                parameter_object.push(v);
+                            } else {
+                                let v = quote! {
+                                    pub #p_name: #enum_name,
+                                };
+                                parameter_object.push(v);
+                            }
                         } else {
-                            let v = quote! {
-                                pub #p_name: &'static str,
-                            };
+                            if let Some(_) = parameter.optional {
+                                let v = quote! {
+                                    pub #p_name: Option<String>,
+                                };
 
-                            parameter_object.push(v);
+                                parameter_object.push(v);
+                            } else {
+                                let v = quote! {
+                                    pub #p_name: String,
+                                };
+
+                                parameter_object.push(v);
+                            }
                         }
                     }
                     _ => {
@@ -758,6 +820,7 @@ pub fn compile_cdp_json(file_name: &str) -> Vec<TokenStream> {
             &mut dependencies,
             &mut command_objects,
             &mut parameter_objects,
+            &mut enums,
         );
 
         for command in &dom.commands {
