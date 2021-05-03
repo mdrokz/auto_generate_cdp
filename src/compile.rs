@@ -73,6 +73,7 @@ fn get_types(
                         if let Some(p_type) = previous_type {
                             if let Some(_) = param.optional {
                                 let v = quote! {
+                                    #[serde(skip_serializing_if="Option::is_none")]
                                     pub #name: Option<#p_type<#p_ref>>,
                                 };
                                 object.push(v);
@@ -105,6 +106,7 @@ fn get_types(
                         if let Some(p_type) = previous_type {
                             if let Some(_) = param.optional {
                                 let v = quote! {
+                                    #[serde(skip_serializing_if="Option::is_none")]
                                     pub #name: Option<#p_type<#typ>>,
                                 };
                                 object.push(v);
@@ -117,6 +119,7 @@ fn get_types(
                         } else {
                             if let Some(_) = param.optional {
                                 let v = quote! {
+                                    #[serde(skip_serializing_if="Option::is_none")]
                                     pub #name: Option<#typ>,
                                 };
                                 object.push(v);
@@ -203,14 +206,11 @@ fn get_types(
                                         }
                                     }
 
-                                    if let Some(_) = property.optional {
-                                    } else {
-                                    }
-
                                     if p_ref == type_element.id {
                                         let p_ref = Ident::new(&p_ref, Span::call_site());
                                         if let Some(_) = property.optional {
                                             let v = quote! {
+                                                #[serde(skip_serializing_if="Option::is_none")]
                                                 pub #p_name: Option<Box<#p_ref>>,
                                             };
                                             object.push(v);
@@ -228,6 +228,7 @@ fn get_types(
 
                                         if let Some(_) = property.optional {
                                             let v = quote! {
+                                                #[serde(skip_serializing_if="Option::is_none")]
                                                 pub #p_name: Option<#(#dep)::*>,
                                             };
                                             object.push(v);
@@ -363,6 +364,7 @@ pub fn get_commands(
 
                                     if let Some(_) = return_type.optional {
                                         let v = quote! {
+                                            #[serde(skip_serializing_if="Option::is_none")]
                                             pub #name: Option<#(#dep)::*>,
                                         };
 
@@ -379,6 +381,7 @@ pub fn get_commands(
 
                                     if let Some(_) = return_type.optional {
                                         let v = quote! {
+                                            #[serde(skip_serializing_if="Option::is_none")]
                                             pub #name: Option<Vec<#ref_type>>,
                                         };
                                         command_object.push(v);
@@ -395,6 +398,7 @@ pub fn get_commands(
                                 if let Some(typ) = type_type {
                                     if let Some(_) = return_type.optional {
                                         let v = quote! {
+                                            #[serde(skip_serializing_if="Option::is_none")]
                                             pub #name: Option<Vec<#typ>>,
                                         };
 
@@ -415,6 +419,7 @@ pub fn get_commands(
                             if let Some(typ) = type_type {
                                 if let Some(_) = return_type.optional {
                                     let v = quote! {
+                                        #[serde(skip_serializing_if="Option::is_none")]
                                         pub #name: Option<#typ>,
                                     };
 
@@ -443,6 +448,7 @@ pub fn get_commands(
 
                         if let Some(_) = return_type.optional {
                             let v = quote! {
+                                #[serde(skip_serializing_if="Option::is_none")]
                                 pub #ret_type: Option<#(#dep)::*>,
                             };
                             command_object.push(v);
@@ -457,6 +463,7 @@ pub fn get_commands(
 
                         if let Some(_) = return_type.optional {
                             let v = quote! {
+                                #[serde(skip_serializing_if="Option::is_none")]
                                 pub #ret_type: Option<#p_ref>,
                             };
 
@@ -541,6 +548,7 @@ pub fn get_parameters(
 
                                 if let Some(_) = parameter.optional {
                                     let v = quote! {
+                                        #[serde(skip_serializing_if="Option::is_none")]
                                         pub #p_name: Option<#(#dep)::*>,
                                     };
                                     parameter_object.push(v);
@@ -555,6 +563,7 @@ pub fn get_parameters(
 
                                 if let Some(_) = parameter.optional {
                                     let v = quote! {
+                                        #[serde(skip_serializing_if="Option::is_none")]
                                         pub #p_name: Option<Vec<#ref_type>>,
                                     };
                                     parameter_object.push(v);
@@ -571,6 +580,7 @@ pub fn get_parameters(
                             if let Some(typ) = type_type {
                                 if let Some(v) = parameter.optional {
                                     let v = quote! {
+                                        #[serde(skip_serializing_if="Option::is_none")]
                                         pub #p_name: Option<Vec<#typ>>,
                                     };
 
@@ -635,6 +645,7 @@ pub fn get_parameters(
 
                             if let Some(_) = parameter.optional {
                                 let v = quote! {
+                                    #[serde(skip_serializing_if="Option::is_none")]
                                     pub #p_name: Option<#enum_name>,
                                 };
                                 parameter_object.push(v);
@@ -647,6 +658,7 @@ pub fn get_parameters(
                         } else {
                             if let Some(_) = parameter.optional {
                                 let v = quote! {
+                                    #[serde(skip_serializing_if="Option::is_none")]
                                     pub #p_name: Option<String>,
                                 };
 
@@ -666,6 +678,7 @@ pub fn get_parameters(
                         if let Some(typ) = type_type {
                             if let Some(_) = parameter.optional {
                                 let v = quote! {
+                                    #[serde(skip_serializing_if="Option::is_none")]
                                     pub #p_name: Option<#typ>,
                                 };
 
@@ -711,6 +724,7 @@ pub fn get_parameters(
 
                     if let Some(_) = parameter.optional {
                         let v = quote! {
+                            #[serde(skip_serializing_if="Option::is_none")]
                             pub #ret_type: Option<#(#dep)::*>,
                         };
                         parameter_object.push(v);
@@ -725,6 +739,7 @@ pub fn get_parameters(
 
                     if let Some(_) = parameter.optional {
                         let v = quote! {
+                            #[serde(skip_serializing_if="Option::is_none")]
                             pub #ret_type: Option<#p_ref>,
                         };
 
@@ -767,12 +782,6 @@ pub fn compile_cdp_json(file_name: &str) -> Vec<TokenStream> {
         .unwrap();
 
     let protocol: Protocol = serde_json::from_str(&json).unwrap();
-
-    // let doms = protocol
-    //     .domains
-    //     .iter()
-    //     .filter(|d| &d.domain == "Accessibility")
-    //     .collect::<Vec<&Domain>>();
 
     let mut mods = Vec::new();
 
