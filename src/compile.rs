@@ -107,7 +107,7 @@ fn get_types(
                         type_type = Some(Ident::new("f64", Span::call_site()));
                     }
 
-                    if v.contains("x_") || v.contains("y_") {
+                    if v.starts_with("x_") || v.starts_with("y_") {
                         type_type = Some(Ident::new("f64", Span::call_site()));
                     }
 
@@ -325,7 +325,7 @@ fn get_types(
                         type_type = Some(Ident::new("f64", Span::call_site()));
                     }
 
-                    if v.contains("x_") || v.contains("y_") {
+                    if v.starts_with("x_") || v.starts_with("y_") {
                         type_type = Some(Ident::new("f64", Span::call_site()));
                     }
 
@@ -518,7 +518,7 @@ pub fn get_commands(
                                 type_type = Some(Ident::new("f64", Span::call_site()));
                             }
 
-                            if v.contains("x_") || v.contains("y_") {
+                            if v.starts_with("x_") || v.starts_with("y_") {
                                 type_type = Some(Ident::new("f64", Span::call_site()));
                             }
 
@@ -787,7 +787,7 @@ pub fn get_parameters(
                             type_type = Some(Ident::new("f64", Span::call_site()));
                         }
 
-                        if v.contains("x_") || v.contains("y_") {
+                        if v.starts_with("x_") || v.starts_with("y_") {
                             type_type = Some(Ident::new("f64", Span::call_site()));
                         }
 
@@ -1054,7 +1054,7 @@ pub fn get_events(
                             type_type = Some(Ident::new("f64", Span::call_site()));
                         }
 
-                        if v.contains("x_") || v.contains("y_") {
+                        if v.starts_with("x_") || v.starts_with("y_") {
                             type_type = Some(Ident::new("f64", Span::call_site()));
                         }
 
