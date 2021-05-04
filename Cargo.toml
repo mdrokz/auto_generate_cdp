@@ -8,7 +8,7 @@ license-file = "LICENSE.txt"
 name = "auto_generate_cdp"
 readme = "README.md"
 repository = "https://github.com/mdrokz/auto_generate_cdp"
-version = "0.1.12"
+version = "0.2.0"
 exclude = [".vscode/*"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
