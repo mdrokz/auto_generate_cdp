@@ -99,7 +99,17 @@ fn get_types(
                     }
                 }
                 _ => {
-                    let type_type: Option<Ident> = type_type.into();
+                    let mut type_type: Option<Ident> = type_type.into();
+
+                    let v = name.to_string();
+
+                    if v == "x" || v == "y" {
+                        type_type = Some(Ident::new("f64", Span::call_site()));
+                    }
+
+                    if v.contains("x_") || v.contains("y_") {
+                        type_type = Some(Ident::new("f64", Span::call_site()));
+                    }
 
                     if let Some(typ) = type_type {
                         if let Some(p_type) = previous_type {
@@ -307,19 +317,30 @@ fn get_types(
                     }
                 }
                 _ => {
-                    let type_type: Option<Ident> = type_type.into();
-                    let type_type = type_type.unwrap();
+                    let mut type_type: Option<Ident> = type_type.into();
 
-                    if let Some(p_type) = previous_type {
-                        let v = quote! {
-                            pub type #name = #p_type<#type_type>;
-                        };
-                        types.push(v);
-                    } else {
-                        let v = quote! {
-                            pub type #name = #type_type;
-                        };
-                        types.push(v);
+                    let v = name.to_string();
+
+                    if v == "x" || v == "y" {
+                        type_type = Some(Ident::new("f64", Span::call_site()));
+                    }
+
+                    if v.contains("x_") || v.contains("y_") {
+                        type_type = Some(Ident::new("f64", Span::call_site()));
+                    }
+
+                    if let Some(typ) = type_type {
+                        if let Some(p_type) = previous_type {
+                            let v = quote! {
+                                pub type #name = #p_type<#typ>;
+                            };
+                            types.push(v);
+                        } else {
+                            let v = quote! {
+                                pub type #name = #typ;
+                            };
+                            types.push(v);
+                        }
                     }
                 }
             }
@@ -414,7 +435,7 @@ pub fn get_commands(
                         TypeEnum::String => {
                             if let Some(enum_vec) = &return_type.parameter_enum {
                                 let mut enum_tokens: Vec<TokenStream> = vec![];
-    
+
                                 for e in enum_vec {
                                     if e.contains("-") {
                                         let enum_type = e
@@ -422,14 +443,14 @@ pub fn get_commands(
                                             .map(|s| {
                                                 let mut upper = s.to_string();
                                                 upper.first_uppercase();
-    
+
                                                 upper
                                             })
                                             .collect::<Vec<String>>()
                                             .join("");
-    
+
                                         let enum_type = Ident::new(&enum_type, Span::call_site());
-    
+
                                         enum_tokens.push(quote! {
                                             #enum_type,
                                         });
@@ -441,14 +462,14 @@ pub fn get_commands(
                                         });
                                     }
                                 }
-    
+
                                 let mut enum_name = name.to_string();
                                 // let mut sp = p_name.to_string();
                                 // sp.first_uppercase();
                                 // enum_name.push_str(&sp);
                                 enum_name.push_str("Option");
                                 let enum_name = Ident::new(&enum_name, Span::call_site());
-    
+
                                 let typ_enum = quote! {
                                     #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
                                     #[serde(rename_all = "camelCase")]
@@ -456,9 +477,9 @@ pub fn get_commands(
                                         #(#enum_tokens)*
                                     }
                                 };
-    
+
                                 enums.push(typ_enum);
-    
+
                                 if let Some(_) = return_type.optional {
                                     let v = quote! {
                                         #[serde(skip_serializing_if="Option::is_none")]
@@ -477,19 +498,29 @@ pub fn get_commands(
                                         #[serde(skip_serializing_if="Option::is_none")]
                                         pub #name: Option<String>,
                                     };
-    
+
                                     command_object.push(v);
                                 } else {
                                     let v = quote! {
                                         pub #name: String,
                                     };
-    
+
                                     command_object.push(v);
                                 }
                             }
                         }
                         _ => {
-                            let type_type: Option<Ident> = param_type.into();
+                            let mut type_type: Option<Ident> = param_type.into();
+
+                            let v = name.to_string();
+
+                            if v == "x" || v == "y" {
+                                type_type = Some(Ident::new("f64", Span::call_site()));
+                            }
+
+                            if v.contains("x_") || v.contains("y_") {
+                                type_type = Some(Ident::new("f64", Span::call_site()));
+                            }
 
                             if let Some(typ) = type_type {
                                 if let Some(_) = return_type.optional {
@@ -748,7 +779,17 @@ pub fn get_parameters(
                         }
                     }
                     _ => {
-                        let type_type: Option<Ident> = param_type.into();
+                        let mut type_type: Option<Ident> = param_type.into();
+
+                        let v = p_name.to_string();
+
+                        if v == "x" || v == "y" {
+                            type_type = Some(Ident::new("f64", Span::call_site()));
+                        }
+
+                        if v.contains("x_") || v.contains("y_") {
+                            type_type = Some(Ident::new("f64", Span::call_site()));
+                        }
 
                         if let Some(typ) = type_type {
                             if let Some(_) = parameter.optional {
@@ -1005,7 +1046,17 @@ pub fn get_events(
                         }
                     }
                     _ => {
-                        let type_type: Option<Ident> = param_type.into();
+                        let mut type_type: Option<Ident> = param_type.into();
+
+                        let v = p_name.to_string();
+
+                        if v == "x" || v == "y" {
+                            type_type = Some(Ident::new("f64", Span::call_site()));
+                        }
+
+                        if v.contains("x_") || v.contains("y_") {
+                            type_type = Some(Ident::new("f64", Span::call_site()));
+                        }
 
                         if let Some(typ) = type_type {
                             if let Some(_) = parameter.optional {
@@ -1195,14 +1246,12 @@ pub fn compile_cdp_json(file_name: &str) -> (Vec<TokenStream>, Vec<TokenStream>)
                 let mut enum_name = String::new();
 
                 if !name.contains(&dom.domain) {
-
                     enum_name.push_str(&dom.domain.clone());
                 }
 
-
                 enum_name.push_str(&name);
 
-                let enum_name = Ident::new(&enum_name,Span::call_site());
+                let enum_name = Ident::new(&enum_name, Span::call_site());
 
                 name.push_str("Event");
 
