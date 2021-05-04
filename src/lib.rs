@@ -22,9 +22,9 @@ pub fn init() {
     file.sync_all().unwrap();
 
     if file.metadata().unwrap().len() <= 0 {
-        let js_mods = compile_cdp_json("./js_protocol.json");
+        let (js_mods,js_events) = compile_cdp_json("./js_protocol.json");
 
-        let browser_mods = compile_cdp_json("./browser_protocol.json");
+        let (browser_mods,browser_events) = compile_cdp_json("./browser_protocol.json");
 
         let modv = quote! {
             pub mod cdp {
@@ -78,6 +78,20 @@ pub fn init() {
                             }
                     }
 
+                    }
+
+                    #[derive(Deserialize, Debug, Clone, PartialEq)]
+                    #[serde(tag = "method")]
+                    #[allow(clippy::large_enum_variant)]
+                    pub enum BrowserEvent {
+                        #(#browser_events)*
+                    }
+
+                    #[derive(Deserialize, Debug, Clone, PartialEq)]
+                    #[serde(tag = "method")]
+                    #[allow(clippy::large_enum_variant)]
+                    pub enum JsEvent {
+                        #(#js_events)*
                     }
                 }
 

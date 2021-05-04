@@ -1,6 +1,6 @@
 use convert_case::{Case, Casing};
 
-use crate::types::{Command, Parameter, Protocol, TypeElement, TypeEnum};
+use crate::types::{Command, Event, Parameter, Protocol, TypeElement, TypeEnum};
 
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
@@ -38,7 +38,6 @@ impl Into<Option<Ident>> for TypeEnum {
 
 enum PropertyType<'a> {
     Param(&'a Parameter),
-    Cmd(&'a Command),
     Element(&'a TypeElement),
 }
 
@@ -244,7 +243,7 @@ fn get_types(
                         }
                     }
                     objects.push(quote! {
-                            #[derive(Deserialize,Serialize, Debug)]
+                            #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
                             #[serde(rename_all = "camelCase")]
                             pub struct #name {
                                 #(#object)*
@@ -283,7 +282,7 @@ fn get_types(
                         }
 
                         let typ_enum = quote! {
-                            #[derive(Deserialize,Serialize, Debug)]
+                            #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
                             #[serde(rename_all = "camelCase")]
                             pub enum #name {
                                 #(#enum_tokens)*
@@ -325,7 +324,6 @@ fn get_types(
                 }
             }
         }
-        _ => {}
     };
 }
 
@@ -413,6 +411,83 @@ pub fn get_commands(
                                 }
                             }
                         }
+                        TypeEnum::String => {
+                            if let Some(enum_vec) = &return_type.parameter_enum {
+                                let mut enum_tokens: Vec<TokenStream> = vec![];
+    
+                                for e in enum_vec {
+                                    if e.contains("-") {
+                                        let enum_type = e
+                                            .split("-")
+                                            .map(|s| {
+                                                let mut upper = s.to_string();
+                                                upper.first_uppercase();
+    
+                                                upper
+                                            })
+                                            .collect::<Vec<String>>()
+                                            .join("");
+    
+                                        let enum_type = Ident::new(&enum_type, Span::call_site());
+    
+                                        enum_tokens.push(quote! {
+                                            #enum_type,
+                                        });
+                                    } else {
+                                        let enum_type =
+                                            Ident::new(&e.to_case(Case::Pascal), Span::call_site());
+                                        enum_tokens.push(quote! {
+                                            #enum_type,
+                                        });
+                                    }
+                                }
+    
+                                let mut enum_name = name.to_string();
+                                // let mut sp = p_name.to_string();
+                                // sp.first_uppercase();
+                                // enum_name.push_str(&sp);
+                                enum_name.push_str("Option");
+                                let enum_name = Ident::new(&enum_name, Span::call_site());
+    
+                                let typ_enum = quote! {
+                                    #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
+                                    #[serde(rename_all = "camelCase")]
+                                    pub enum #enum_name {
+                                        #(#enum_tokens)*
+                                    }
+                                };
+    
+                                enums.push(typ_enum);
+    
+                                if let Some(_) = return_type.optional {
+                                    let v = quote! {
+                                        #[serde(skip_serializing_if="Option::is_none")]
+                                        pub #name: Option<#enum_name>,
+                                    };
+                                    command_object.push(v);
+                                } else {
+                                    let v = quote! {
+                                        pub #name: #enum_name,
+                                    };
+                                    command_object.push(v);
+                                }
+                            } else {
+                                if let Some(_) = return_type.optional {
+                                    let v = quote! {
+                                        #[serde(skip_serializing_if="Option::is_none")]
+                                        pub #name: Option<String>,
+                                    };
+    
+                                    command_object.push(v);
+                                } else {
+                                    let v = quote! {
+                                        pub #name: String,
+                                    };
+    
+                                    command_object.push(v);
+                                }
+                            }
+                        }
                         _ => {
                             let type_type: Option<Ident> = param_type.into();
 
@@ -479,7 +554,7 @@ pub fn get_commands(
                 }
             }
             command_objects.push(quote! {
-                #[derive(Deserialize,Serialize, Debug)]
+                #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
                 #[serde(rename_all = "camelCase")]
                 pub struct #name {
                     #(#command_object)*
@@ -487,7 +562,7 @@ pub fn get_commands(
             });
         } else {
             command_objects.push(quote! {
-                #[derive(Deserialize,Serialize, Debug)]
+                #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
                 #[serde(rename_all = "camelCase")]
                 pub struct #name {}
             });
@@ -578,7 +653,7 @@ pub fn get_parameters(
                             let type_type: Option<Ident> = items.items_type.unwrap().into();
 
                             if let Some(typ) = type_type {
-                                if let Some(v) = parameter.optional {
+                                if let Some(_) = parameter.optional {
                                     let v = quote! {
                                         #[serde(skip_serializing_if="Option::is_none")]
                                         pub #p_name: Option<Vec<#typ>>,
@@ -634,7 +709,7 @@ pub fn get_parameters(
                             let enum_name = Ident::new(&enum_name, Span::call_site());
 
                             let typ_enum = quote! {
-                                #[derive(Deserialize,Serialize, Debug)]
+                                #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
                                 #[serde(rename_all = "camelCase")]
                                 pub enum #enum_name {
                                     #(#enum_tokens)*
@@ -735,7 +810,7 @@ pub fn get_parameters(
                         parameter_object.push(v);
                     }
                 } else {
-                    let p_ref = Ident::new(&p_ref.replace("type", "Type"), Span::call_site());
+                    let p_ref = Ident::new(&p_ref, Span::call_site());
 
                     if let Some(_) = parameter.optional {
                         let v = quote! {
@@ -755,7 +830,7 @@ pub fn get_parameters(
             }
         }
         parameter_objects.push(quote! {
-            #[derive(Deserialize,Serialize, Debug)]
+            #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
             #[serde(rename_all = "camelCase")]
             pub struct #name {
                 #(#parameter_object)*
@@ -763,14 +838,256 @@ pub fn get_parameters(
         });
     } else {
         parameter_objects.push(quote! {
-            #[derive(Deserialize,Serialize, Debug)]
+            #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
             #[serde(rename_all = "camelCase")]
             pub struct #name {}
         });
     }
 }
 
-pub fn compile_cdp_json(file_name: &str) -> Vec<TokenStream> {
+pub fn get_events(
+    event: Event,
+    event_objects: &mut Vec<TokenStream>,
+    enums: &mut Vec<TokenStream>,
+) {
+    let mut name = event.name.clone();
+    name.first_uppercase();
+    name.push_str("Event");
+    let name = Ident::new(&name, Span::call_site());
+    if let Some(parameters) = event.parameters {
+        let mut event_object = Vec::new();
+        for parameter in parameters {
+            let p_name = Ident::new(
+                &parameter
+                    .name
+                    .to_case(Case::Snake)
+                    .replace("type", "Type")
+                    .replace("override", "Override"),
+                Span::call_site(),
+            );
+
+            if let Some(param_type) = parameter.parameter_type {
+                match param_type {
+                    TypeEnum::Array => {
+                        let items = parameter.items.as_ref().unwrap();
+
+                        if let Some(ref_type) = items.items_ref.clone() {
+                            if ref_type.contains(".") {
+                                let dep = ref_type
+                                    .split(".")
+                                    .map(|v| Ident::new(v, Span::call_site()))
+                                    .collect::<Vec<Ident>>();
+
+                                if let Some(_) = parameter.optional {
+                                    let v = quote! {
+                                        #[serde(skip_serializing_if="Option::is_none")]
+                                        pub #p_name: Option<super::super::#(#dep)::*>,
+                                    };
+                                    event_object.push(v);
+                                } else {
+                                    let v = quote! {
+                                        pub #p_name: super::super::#(#dep)::*,
+                                    };
+                                    event_object.push(v);
+                                }
+                            } else {
+                                let ref_type = Ident::new(&ref_type, Span::call_site());
+
+                                if let Some(_) = parameter.optional {
+                                    let v = quote! {
+                                        #[serde(skip_serializing_if="Option::is_none")]
+                                        pub #p_name: Option<Vec<super::#ref_type>>,
+                                    };
+                                    event_object.push(v);
+                                } else {
+                                    let v = quote! {
+                                        pub #p_name: Vec<super::#ref_type>,
+                                    };
+                                    event_object.push(v);
+                                }
+                            }
+                        } else {
+                            let type_type: Option<Ident> = items.items_type.unwrap().into();
+
+                            if let Some(typ) = type_type {
+                                if let Some(_) = parameter.optional {
+                                    let v = quote! {
+                                        #[serde(skip_serializing_if="Option::is_none")]
+                                        pub #p_name: Option<Vec<#typ>>,
+                                    };
+
+                                    event_object.push(v);
+                                } else {
+                                    let v = quote! {
+                                        pub #p_name: Vec<#typ>,
+                                    };
+
+                                    event_object.push(v);
+                                }
+                            }
+                        }
+                    }
+                    TypeEnum::String => {
+                        if let Some(enum_vec) = &parameter.parameter_enum {
+                            let mut enum_tokens: Vec<TokenStream> = vec![];
+
+                            for e in enum_vec {
+                                if e.contains("-") {
+                                    let enum_type = e
+                                        .split("-")
+                                        .map(|s| {
+                                            let mut upper = s.to_string();
+                                            upper.first_uppercase();
+
+                                            upper
+                                        })
+                                        .collect::<Vec<String>>()
+                                        .join("");
+
+                                    let enum_type = Ident::new(&enum_type, Span::call_site());
+
+                                    enum_tokens.push(quote! {
+                                        #enum_type,
+                                    });
+                                } else {
+                                    let enum_type =
+                                        Ident::new(&e.to_case(Case::Pascal), Span::call_site());
+                                    enum_tokens.push(quote! {
+                                        #enum_type,
+                                    });
+                                }
+                            }
+
+                            let mut enum_name = name.to_string();
+                            let mut sp = p_name.to_string();
+                            sp.first_uppercase();
+                            enum_name.push_str(&sp);
+                            enum_name.push_str("Option");
+                            let enum_name = Ident::new(&enum_name, Span::call_site());
+
+                            let typ_enum = quote! {
+                                #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
+                                #[serde(rename_all = "camelCase")]
+                                pub enum #enum_name {
+                                    #(#enum_tokens)*
+                                }
+                            };
+
+                            enums.push(typ_enum);
+
+                            if let Some(_) = parameter.optional {
+                                let v = quote! {
+                                    #[serde(skip_serializing_if="Option::is_none")]
+                                    pub #p_name: Option<super::#enum_name>,
+                                };
+                                event_object.push(v);
+                            } else {
+                                let v = quote! {
+                                    pub #p_name: super::#enum_name,
+                                };
+                                event_object.push(v);
+                            }
+                        } else {
+                            if let Some(_) = parameter.optional {
+                                let v = quote! {
+                                    #[serde(skip_serializing_if="Option::is_none")]
+                                    pub #p_name: Option<String>,
+                                };
+
+                                event_object.push(v);
+                            } else {
+                                let v = quote! {
+                                    pub #p_name: String,
+                                };
+
+                                event_object.push(v);
+                            }
+                        }
+                    }
+                    _ => {
+                        let type_type: Option<Ident> = param_type.into();
+
+                        if let Some(typ) = type_type {
+                            if let Some(_) = parameter.optional {
+                                let v = quote! {
+                                    #[serde(skip_serializing_if="Option::is_none")]
+                                    pub #p_name: Option<#typ>,
+                                };
+
+                                event_object.push(v);
+                            } else {
+                                let v = quote! {
+                                    pub #p_name: #typ,
+                                };
+
+                                event_object.push(v);
+                            }
+                        }
+                    }
+                }
+            } else {
+                let p_ref = &parameter.parameter_ref.clone().unwrap();
+
+                let ret_type = Ident::new(
+                    &parameter.name.to_case(Case::Snake).replace("type", "Type"),
+                    Span::call_site(),
+                );
+
+                if p_ref.contains(".") {
+                    let dep = p_ref
+                        .split(".")
+                        .map(|v| Ident::new(v, Span::call_site()))
+                        .collect::<Vec<Ident>>();
+
+                    if let Some(_) = parameter.optional {
+                        let v = quote! {
+                            #[serde(skip_serializing_if="Option::is_none")]
+                            pub #ret_type: Option<super::super::#(#dep)::*>,
+                        };
+                        event_object.push(v);
+                    } else {
+                        let v = quote! {
+                            pub #ret_type: super::super::#(#dep)::*,
+                        };
+                        event_object.push(v);
+                    }
+                } else {
+                    let p_ref = Ident::new(&p_ref, Span::call_site());
+
+                    if let Some(_) = parameter.optional {
+                        let v = quote! {
+                            #[serde(skip_serializing_if="Option::is_none")]
+                            pub #ret_type: Option<super::#p_ref>,
+                        };
+
+                        event_object.push(v);
+                    } else {
+                        let v = quote! {
+                            pub #ret_type: super::#p_ref,
+                        };
+
+                        event_object.push(v);
+                    }
+                }
+            }
+        }
+        event_objects.push(quote! {
+            #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
+            #[serde(rename_all = "camelCase")]
+            pub struct #name {
+                #(#event_object)*
+            }
+        });
+    } else {
+        event_objects.push(quote! {
+            #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
+            #[serde(rename_all = "camelCase")]
+            pub struct #name {}
+        });
+    }
+}
+
+pub fn compile_cdp_json(file_name: &str) -> (Vec<TokenStream>, Vec<TokenStream>) {
     let url = format!(
         "https://raw.githubusercontent.com/ChromeDevTools/devtools-protocol/master/json/{}",
         file_name
@@ -784,6 +1101,7 @@ pub fn compile_cdp_json(file_name: &str) -> Vec<TokenStream> {
     let protocol: Protocol = serde_json::from_str(&json).unwrap();
 
     let mut mods = Vec::new();
+    let mut event_parts = Vec::new();
 
     for dom in protocol.domains {
         let mut types = Vec::new();
@@ -794,6 +1112,8 @@ pub fn compile_cdp_json(file_name: &str) -> Vec<TokenStream> {
         let mut command_objects = Vec::new();
 
         let mut parameter_objects = Vec::new();
+
+        let mut event_objects = Vec::new();
 
         let mut method_impls = Vec::new();
 
@@ -856,6 +1176,47 @@ pub fn compile_cdp_json(file_name: &str) -> Vec<TokenStream> {
             method_impls.push(v);
         }
 
+        if let Some(events) = dom.events {
+            for event in events {
+                let event_name = event.name.clone();
+
+                get_events(event, &mut event_objects, &mut enums);
+
+                let mut domain_event = dom.domain.clone();
+
+                domain_event.push_str(&format!(".{}", event_name));
+
+                let domain_ident = Ident::new(&dom.domain.clone(), Span::call_site());
+
+                let mut name = event_name.clone();
+
+                name.first_uppercase();
+
+                let mut enum_name = String::new();
+
+                if !name.contains(&dom.domain) {
+
+                    enum_name.push_str(&dom.domain.clone());
+                }
+
+
+                enum_name.push_str(&name);
+
+                let enum_name = Ident::new(&enum_name,Span::call_site());
+
+                name.push_str("Event");
+
+                let name = Ident::new(&name, Span::call_site());
+
+                let v = quote! {
+                    #[serde(rename = #domain_event)]
+                    #enum_name(super::#domain_ident::events::#name),
+                };
+
+                event_parts.push(v);
+            }
+        }
+
         let name = Ident::new(&dom.domain, Span::call_site());
 
         mods.push(quote! {
@@ -877,11 +1238,19 @@ pub fn compile_cdp_json(file_name: &str) -> Vec<TokenStream> {
 
                 #(#command_objects)*
 
+
                 #(#method_impls)*
+
+                pub mod events {
+                    use serde::{Deserialize, Serialize};
+                    use super::super::types::*;
+
+                    #(#event_objects)*
+                }
 
             }
         });
     }
 
-    mods
+    (mods, event_parts)
 }
