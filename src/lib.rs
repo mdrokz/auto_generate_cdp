@@ -83,14 +83,8 @@ pub fn init() {
                     #[derive(Deserialize, Debug, Clone, PartialEq)]
                     #[serde(tag = "method")]
                     #[allow(clippy::large_enum_variant)]
-                    pub enum BrowserEvent {
+                    pub enum Event {
                         #(#browser_events)*
-                    }
-
-                    #[derive(Deserialize, Debug, Clone, PartialEq)]
-                    #[serde(tag = "method")]
-                    #[allow(clippy::large_enum_variant)]
-                    pub enum JsEvent {
                         #(#js_events)*
                     }
                 }
