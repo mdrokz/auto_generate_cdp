@@ -41,6 +41,17 @@ enum PropertyType<'a> {
     Element(&'a TypeElement),
 }
 
+fn check_float(ident: &str) -> bool {
+    match ident {
+        "height" => true,
+        "width" => true,
+        "x" => true,
+        "y" => true,
+        "scale" => true,
+        _ => false,
+    }
+}
+
 fn get_types(
     type_type: TypeEnum,
     property_type: PropertyType,
@@ -103,11 +114,11 @@ fn get_types(
 
                     let v = name.to_string();
 
-                    if v == "x" || v == "y" {
+                    if check_float(&v) {
                         type_type = Some(Ident::new("f64", Span::call_site()));
                     }
 
-                    if v.starts_with("x_") || v.starts_with("y_") {
+                    if v.starts_with("x_") || v.starts_with("y_") || v.starts_with("scale_") {
                         type_type = Some(Ident::new("f64", Span::call_site()));
                     }
 
@@ -321,11 +332,11 @@ fn get_types(
 
                     let v = name.to_string();
 
-                    if v == "x" || v == "y" {
+                    if check_float(&v) {
                         type_type = Some(Ident::new("f64", Span::call_site()));
                     }
 
-                    if v.starts_with("x_") || v.starts_with("y_") {
+                    if v.starts_with("x_") || v.starts_with("y_") || v.starts_with("scale_") {
                         type_type = Some(Ident::new("f64", Span::call_site()));
                     }
 
@@ -514,11 +525,12 @@ pub fn get_commands(
 
                             let v = name.to_string();
 
-                            if v == "x" || v == "y" {
+                            if check_float(&v) {
                                 type_type = Some(Ident::new("f64", Span::call_site()));
                             }
 
-                            if v.starts_with("x_") || v.starts_with("y_") {
+                            if v.starts_with("x_") || v.starts_with("y_") || v.starts_with("scale_")
+                            {
                                 type_type = Some(Ident::new("f64", Span::call_site()));
                             }
 
@@ -783,11 +795,11 @@ pub fn get_parameters(
 
                         let v = p_name.to_string();
 
-                        if v == "x" || v == "y" {
+                        if check_float(&v) {
                             type_type = Some(Ident::new("f64", Span::call_site()));
                         }
 
-                        if v.starts_with("x_") || v.starts_with("y_") {
+                        if v.starts_with("x_") || v.starts_with("y_") || v.starts_with("scale_") {
                             type_type = Some(Ident::new("f64", Span::call_site()));
                         }
 
@@ -1050,11 +1062,11 @@ pub fn get_events(
 
                         let v = p_name.to_string();
 
-                        if v == "x" || v == "y" {
+                        if check_float(&v) {
                             type_type = Some(Ident::new("f64", Span::call_site()));
                         }
 
-                        if v.starts_with("x_") || v.starts_with("y_") {
+                        if v.starts_with("x_") || v.starts_with("y_") || v.starts_with("scale_") {
                             type_type = Some(Ident::new("f64", Span::call_site()));
                         }
 
@@ -1266,10 +1278,10 @@ pub fn compile_cdp_json(file_name: &str) -> (Vec<TokenStream>, Vec<TokenStream>)
             }
         }
 
-        let name = Ident::new(&dom.domain, Span::call_site());
+        let domain_ident = Ident::new(&dom.domain, Span::call_site());
 
         mods.push(quote! {
-            pub mod #name {
+            pub mod #domain_ident {
 
                 use serde::{Deserialize, Serialize};
                 use serde_json::Value as Json;
