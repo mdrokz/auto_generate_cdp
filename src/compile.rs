@@ -1,3 +1,5 @@
+use std::iter::FromIterator;
+
 use convert_case::{Case, Casing};
 
 use crate::types::{Command, Event, Parameter, Protocol, TypeElement, TypeEnum};
@@ -5,10 +7,11 @@ use crate::types::{Command, Event, Parameter, Protocol, TypeElement, TypeEnum};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
-use std::iter::FromIterator;
-
 pub trait StringUtils {
     fn first_uppercase(&mut self);
+    fn replace_if<F>(self, from: &str, to: &str, predicate: F) -> String
+    where
+        F: FnOnce() -> bool;
 }
 
 impl StringUtils for String {
@@ -20,6 +23,17 @@ impl StringUtils for String {
             .collect::<Vec<char>>();
 
         self.clone_from(&String::from_iter(s));
+    }
+
+    fn replace_if<F>(self, from: &str, to: &str, predicate: F) -> String
+    where
+        F: FnOnce() -> bool,
+    {
+        if predicate() {
+            self.replace(from, to)
+        } else {
+            self.clone()
+        }
     }
 }
 
@@ -55,6 +69,7 @@ fn check_float(ident: &str) -> bool {
 fn get_types(
     type_type: TypeEnum,
     property_type: PropertyType,
+    type_element: Option<&TypeElement>,
     types: &mut Vec<TokenStream>,
     enums: &mut Vec<TokenStream>,
     objects: &mut Vec<TokenStream>,
@@ -64,14 +79,13 @@ fn get_types(
 ) {
     match property_type {
         PropertyType::Param(param) => {
+            // || param.name.starts_with("type")
             let name = Ident::new(
-                &String::from(
-                    param
-                        .name
-                        .clone()
-                        .to_case(Case::Snake)
-                        .replace("type", "Type"),
-                ),
+                &String::from(param.name.clone().to_case(Case::Snake).replace_if(
+                    "type",
+                    "Type",
+                    || param.name.starts_with("type"),
+                )),
                 Span::call_site(),
             );
 
@@ -93,6 +107,45 @@ fn get_types(
                                 };
                                 object.push(v);
                             }
+                        } else {
+                            if p_ref.contains(".") {
+                                let dep = &p_ref
+                                    .split(".")
+                                    .map(|v| Ident::new(v, Span::call_site()))
+                                    .collect::<Vec<Ident>>()[0];
+
+                                let v: Vec<&TokenStream> = dependencies
+                                    .iter()
+                                    .filter(|v| {
+                                        let r = p_ref.split(".").collect::<Vec<&str>>()[0];
+                                        v.to_string().contains(r)
+                                    })
+                                    .collect();
+
+                                if v.len() <= 0 {
+                                    dependencies.push(quote! {
+                                        use super::#dep;
+                                    });
+                                }
+                            }
+
+                            let dep = p_ref
+                                .split(".")
+                                .map(|v| Ident::new(v, Span::call_site()))
+                                .collect::<Vec<Ident>>();
+
+                            if let Some(_) = param.optional {
+                                let v = quote! {
+                                    #[serde(skip_serializing_if="Option::is_none")]
+                                    pub #name: Option<Vec<#(#dep)::*>>,
+                                };
+                                object.push(v);
+                            } else {
+                                let v = quote! {
+                                    pub #name: Vec<#(#dep)::*>,
+                                };
+                                object.push(v);
+                            }
                         }
                     } else {
                         let p_type = items.items_type.as_ref().unwrap().clone();
@@ -100,6 +153,7 @@ fn get_types(
                         get_types(
                             p_type,
                             PropertyType::Param(param),
+                            type_element,
                             types,
                             enums,
                             objects,
@@ -107,6 +161,115 @@ fn get_types(
                             dependencies,
                             Some(Ident::new("Vec", Span::call_site())),
                         );
+                    }
+                }
+                TypeEnum::String => {
+                    if let Some(enum_vec) = param.parameter_enum.clone() {
+                        let mut enum_tokens: Vec<TokenStream> = vec![];
+
+                        for e in enum_vec {
+                            if e.contains("-") {
+                                let enum_type = e
+                                    .split("-")
+                                    .map(|s| {
+                                        let mut upper = s.to_string();
+                                        upper.first_uppercase();
+
+                                        upper
+                                    })
+                                    .collect::<Vec<String>>()
+                                    .join("");
+
+                                let enum_type = Ident::new(&enum_type, Span::call_site());
+
+                                enum_tokens.push(quote! {
+                                    #enum_type,
+                                });
+                            } else {
+                                let enum_type =
+                                    Ident::new(&e.to_case(Case::Pascal), Span::call_site());
+                                enum_tokens.push(quote! {
+                                    #enum_type,
+                                });
+                            }
+                        }
+                        let element_name = type_element.unwrap();
+
+                        let mut enum_name = String::new();
+
+                        enum_name = String::from(element_name.id.clone());
+                        enum_name.push_str(&name.to_string().to_case(Case::Pascal));
+                        enum_name = enum_name.to_case(Case::Pascal);
+
+                        enum_name.first_uppercase();
+
+                        let enum_name = Ident::new(&enum_name, Span::call_site());
+
+                        let typ_enum = quote! {
+                            #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
+                            #[serde(rename_all = "camelCase")]
+                            pub enum #enum_name {
+                                #(#enum_tokens)*
+                            }
+                        };
+
+                        if let Some(p_type) = previous_type {
+                            if let Some(_) = param.optional {
+                                let v = quote! {
+                                    #[serde(skip_serializing_if="Option::is_none")]
+                                    pub #name: Option<#p_type<#enum_name>>,
+                                };
+                                object.push(v);
+                            } else {
+                                let v = quote! {
+                                    pub #name: #p_type<#enum_name>,
+                                };
+                                object.push(v);
+                            }
+                        } else {
+                            if let Some(_) = param.optional {
+                                let v = quote! {
+                                    #[serde(skip_serializing_if="Option::is_none")]
+                                    pub #name: Option<#enum_name>,
+                                };
+                                object.push(v);
+                            } else {
+                                let v = quote! {
+                                    pub #name: #enum_name,
+                                };
+                                object.push(v);
+                            }
+                        }
+
+                        enums.push(typ_enum);
+                    } else {
+                        if let Some(p_type) = previous_type {
+                            if let Some(_) = param.optional {
+                                let v = quote! {
+                                    #[serde(skip_serializing_if="Option::is_none")]
+                                    pub #name: Option<#p_type<String>>,
+                                };
+                                object.push(v);
+                            } else {
+                                let v = quote! {
+                                    pub #name: #p_type<String>,
+                                };
+                                object.push(v);
+                            }
+                        } else {
+                            if let Some(_) = param.optional {
+                                let v = quote! {
+                                    #[serde(skip_serializing_if="Option::is_none")]
+                                    pub #name: Option<String>,
+                                };
+                                object.push(v);
+                            } else {
+                                let v = quote! {
+                                    pub #name: String,
+                                };
+                                object.push(v);
+                            }
+                        }
                     }
                 }
                 _ => {
@@ -154,12 +317,12 @@ fn get_types(
                 }
             }
         }
-        PropertyType::Element(type_element) => {
-            let name = Ident::new(&type_element.id, Span::call_site());
+        PropertyType::Element(typ_element) => {
+            let name = Ident::new(&typ_element.id, Span::call_site());
 
             match type_type {
                 TypeEnum::Array => {
-                    let items = type_element.items.as_ref().unwrap();
+                    let items = typ_element.items.as_ref().unwrap();
 
                     if let Some(p_ref) = &items.items_ref {
                         let p_ref = Ident::new(&p_ref, Span::call_site());
@@ -172,7 +335,8 @@ fn get_types(
 
                         get_types(
                             p_type,
-                            PropertyType::Element(type_element),
+                            PropertyType::Element(typ_element),
+                            Some(typ_element.clone()),
                             types,
                             enums,
                             objects,
@@ -183,13 +347,14 @@ fn get_types(
                     }
                 }
                 TypeEnum::Object => {
-                    if let Some(properties) = type_element.properties.as_deref() {
+                    if let Some(properties) = typ_element.properties.as_deref() {
                         for property in properties {
                             // println!("{:?}", property);
                             match &property.parameter_type {
                                 Some(p) => get_types(
                                     p.clone(),
                                     PropertyType::Param(property),
+                                    Some(typ_element.clone()),
                                     types,
                                     enums,
                                     objects,
@@ -226,7 +391,7 @@ fn get_types(
                                         }
                                     }
 
-                                    if p_ref == type_element.id {
+                                    if p_ref == typ_element.id {
                                         let p_ref = Ident::new(&p_ref, Span::call_site());
                                         if let Some(_) = property.optional {
                                             let v = quote! {
@@ -272,7 +437,7 @@ fn get_types(
                     });
                 }
                 TypeEnum::String => {
-                    if let Some(enum_vec) = type_element.type_enum.clone() {
+                    if let Some(enum_vec) = typ_element.type_enum.clone() {
                         let mut enum_tokens: Vec<TokenStream> = vec![];
 
                         for e in enum_vec {
@@ -474,7 +639,7 @@ pub fn get_commands(
                                     }
                                 }
 
-                                let mut enum_name = name.to_string();
+                                let mut enum_name = name.to_string().to_case(Case::Pascal);
                                 // let mut sp = p_name.to_string();
                                 // sp.first_uppercase();
                                 // enum_name.push_str(&sp);
@@ -1197,6 +1362,7 @@ pub fn compile_cdp_json(file_name: &str) -> (Vec<TokenStream>, Vec<TokenStream>)
                 get_types(
                     type_element.type_type,
                     PropertyType::Element(type_element),
+                    Some(type_element.clone()),
                     &mut types,
                     &mut enums,
                     &mut objects,
