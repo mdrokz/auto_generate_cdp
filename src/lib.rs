@@ -33,7 +33,7 @@ pub fn init() {
                     use serde::{Deserialize, Serialize};
                     use std::fmt::Debug;
 
-                    pub type JsInt = i32;
+                    pub type JsFloat = f64;
                     pub type JsUInt = u32;
 
                     pub type WindowId = JsUInt;

@@ -42,7 +42,7 @@ impl Into<Option<Ident>> for TypeEnum {
         match self {
             TypeEnum::Boolean => Some(Ident::new("bool", Span::call_site())),
             TypeEnum::Integer => Some(Ident::new("JsUInt", Span::call_site())),
-            TypeEnum::Number => Some(Ident::new("JsInt", Span::call_site())),
+            TypeEnum::Number => Some(Ident::new("JsFloat", Span::call_site())),
             TypeEnum::String => Some(Ident::new("String", Span::call_site())),
             TypeEnum::Any => Some(Ident::new("Json", Span::call_site())),
             _ => None,
@@ -53,17 +53,6 @@ impl Into<Option<Ident>> for TypeEnum {
 enum PropertyType<'a> {
     Param(&'a Parameter),
     Element(&'a TypeElement),
-}
-
-fn check_float(ident: &str) -> bool {
-    match ident {
-        "height" => true,
-        "width" => true,
-        "x" => true,
-        "y" => true,
-        "scale" => true,
-        _ => false,
-    }
 }
 
 fn get_types(
@@ -275,16 +264,6 @@ fn get_types(
                 _ => {
                     let mut type_type: Option<Ident> = type_type.into();
 
-                    let v = name.to_string();
-
-                    if check_float(&v) {
-                        type_type = Some(Ident::new("f64", Span::call_site()));
-                    }
-
-                    if v.starts_with("x_") || v.starts_with("y_") || v.starts_with("scale_") {
-                        type_type = Some(Ident::new("f64", Span::call_site()));
-                    }
-
                     if let Some(typ) = type_type {
                         if let Some(p_type) = previous_type {
                             if let Some(_) = param.optional {
@@ -495,16 +474,6 @@ fn get_types(
                 _ => {
                     let mut type_type: Option<Ident> = type_type.into();
 
-                    let v = name.to_string();
-
-                    if check_float(&v) {
-                        type_type = Some(Ident::new("f64", Span::call_site()));
-                    }
-
-                    if v.starts_with("x_") || v.starts_with("y_") || v.starts_with("scale_") {
-                        type_type = Some(Ident::new("f64", Span::call_site()));
-                    }
-
                     if let Some(typ) = type_type {
                         if let Some(p_type) = previous_type {
                             let v = quote! {
@@ -687,17 +656,6 @@ pub fn get_commands(
                         }
                         _ => {
                             let mut type_type: Option<Ident> = param_type.into();
-
-                            let v = name.to_string();
-
-                            if check_float(&v) {
-                                type_type = Some(Ident::new("f64", Span::call_site()));
-                            }
-
-                            if v.starts_with("x_") || v.starts_with("y_") || v.starts_with("scale_")
-                            {
-                                type_type = Some(Ident::new("f64", Span::call_site()));
-                            }
 
                             if let Some(typ) = type_type {
                                 if let Some(_) = return_type.optional {
@@ -960,14 +918,6 @@ pub fn get_parameters(
 
                         let v = p_name.to_string();
 
-                        if check_float(&v) {
-                            type_type = Some(Ident::new("f64", Span::call_site()));
-                        }
-
-                        if v.starts_with("x_") || v.starts_with("y_") || v.starts_with("scale_") {
-                            type_type = Some(Ident::new("f64", Span::call_site()));
-                        }
-
                         if let Some(typ) = type_type {
                             if let Some(_) = parameter.optional {
                                 let v = quote! {
@@ -1226,14 +1176,6 @@ pub fn get_events(
                         let mut type_type: Option<Ident> = param_type.into();
 
                         let v = p_name.to_string();
-
-                        if check_float(&v) {
-                            type_type = Some(Ident::new("f64", Span::call_site()));
-                        }
-
-                        if v.starts_with("x_") || v.starts_with("y_") || v.starts_with("scale_") {
-                            type_type = Some(Ident::new("f64", Span::call_site()));
-                        }
 
                         if let Some(typ) = type_type {
                             if let Some(_) = parameter.optional {
