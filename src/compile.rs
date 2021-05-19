@@ -1241,10 +1241,19 @@ pub fn get_events(
                 }
             }
         }
+        let mut param_name = name.to_string();
+        param_name.push_str("Params");
+
+        let param_ident = Ident::new(&param_name, Span::call_site());
         event_objects.push(quote! {
             #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
-            #[serde(rename_all = "camelCase")]
             pub struct #name {
+                pub params: #param_ident
+            }
+
+            #[derive(Deserialize,Serialize, Debug, Clone, PartialEq)]
+            #[serde(rename_all = "camelCase")]
+            pub struct #param_ident {
                 #(#event_object)*
             }
         });
