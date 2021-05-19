@@ -156,7 +156,7 @@ fn get_types(
                     if let Some(enum_vec) = param.parameter_enum.clone() {
                         let mut enum_tokens: Vec<TokenStream> = vec![];
 
-                        for e in enum_vec {
+                        for e in enum_vec.clone() {
                             if e.contains("-") {
                                 let enum_type = e
                                     .split("-")
@@ -194,9 +194,42 @@ fn get_types(
 
                         let enum_name = Ident::new(&enum_name, Span::call_site());
 
+                        let vec: Vec<&String> = enum_vec
+                            .iter()
+                            .filter(|v| {
+                                let c = v.chars().next().unwrap();
+                                if c.is_uppercase() {
+                                    true
+                                } else if v.contains("-") {
+                                    true
+                                } else {
+                                    false
+                                }
+                            })
+                            .collect();
+
+                        let mut rename = quote! {
+                            #[serde(rename_all = "camelCase")]
+                        };
+                        if vec.len() > 0 {
+                            let v = vec[0];
+
+                            let c = v.chars().next().unwrap();
+
+                            if c.is_uppercase() {
+                                rename = quote! {
+                                #[serde(rename_all = "PascalCase")]
+                                }
+                            } else if v.contains("-") {
+                                rename = quote! {
+                                #[serde(rename_all = "kebab-case")]
+                                }
+                            }
+                        }
+
                         let typ_enum = quote! {
                             #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
-                            #[serde(rename_all = "camelCase")]
+                            #rename
                             pub enum #enum_name {
                                 #(#enum_tokens)*
                             }
@@ -419,7 +452,7 @@ fn get_types(
                     if let Some(enum_vec) = typ_element.type_enum.clone() {
                         let mut enum_tokens: Vec<TokenStream> = vec![];
 
-                        for e in enum_vec {
+                        for e in enum_vec.clone() {
                             if e.contains("-") {
                                 let enum_type = e
                                     .split("-")
@@ -446,9 +479,42 @@ fn get_types(
                             }
                         }
 
+                        let vec: Vec<&String> = enum_vec
+                            .iter()
+                            .filter(|v| {
+                                let c = v.chars().next().unwrap();
+                                if c.is_uppercase() {
+                                    true
+                                } else if v.contains("-") {
+                                    true
+                                } else {
+                                    false
+                                }
+                            })
+                            .collect();
+
+                        let mut rename = quote! {
+                            #[serde(rename_all = "camelCase")]
+                        };
+                        if vec.len() > 0 {
+                            let v = vec[0];
+
+                            let c = v.chars().next().unwrap();
+
+                            if c.is_uppercase() {
+                                rename = quote! {
+                                #[serde(rename_all = "PascalCase")]
+                                }
+                            } else if v.contains("-") {
+                                rename = quote! {
+                                #[serde(rename_all = "kebab-case")]
+                                }
+                            }
+                        }
+
                         let typ_enum = quote! {
                             #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
-                            #[serde(rename_all = "camelCase")]
+                            #rename
                             pub enum #name {
                                 #(#enum_tokens)*
                             }
@@ -615,9 +681,42 @@ pub fn get_commands(
                                 enum_name.push_str("Option");
                                 let enum_name = Ident::new(&enum_name, Span::call_site());
 
+                                let vec: Vec<&String> = enum_vec
+                                    .iter()
+                                    .filter(|v| {
+                                        let c = v.chars().next().unwrap();
+                                        if c.is_uppercase() {
+                                            true
+                                        } else if v.contains("-") {
+                                            true
+                                        } else {
+                                            false
+                                        }
+                                    })
+                                    .collect();
+
+                                let mut rename = quote! {
+                                    #[serde(rename_all = "camelCase")]
+                                };
+                                if vec.len() > 0 {
+                                    let v = vec[0];
+
+                                    let c = v.chars().next().unwrap();
+
+                                    if c.is_uppercase() {
+                                        rename = quote! {
+                                        #[serde(rename_all = "PascalCase")]
+                                        }
+                                    } else if v.contains("-") {
+                                        rename = quote! {
+                                        #[serde(rename_all = "kebab-case")]
+                                        }
+                                    }
+                                }
+
                                 let typ_enum = quote! {
                                     #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
-                                    #[serde(rename_all = "camelCase")]
+                                    #rename
                                     pub enum #enum_name {
                                         #(#enum_tokens)*
                                     }
@@ -873,10 +972,43 @@ pub fn get_parameters(
                             enum_name.push_str(&sp);
                             enum_name.push_str("Option");
                             let enum_name = Ident::new(&enum_name, Span::call_site());
+                            
+                            let vec: Vec<&String> = enum_vec
+                                    .iter()
+                                    .filter(|v| {
+                                        let c = v.chars().next().unwrap();
+                                        if c.is_uppercase() {
+                                            true
+                                        } else if v.contains("-") {
+                                            true
+                                        } else {
+                                            false
+                                        }
+                                    })
+                                    .collect();
+
+                                let mut rename = quote! {
+                                    #[serde(rename_all = "camelCase")]
+                                };
+                                if vec.len() > 0 {
+                                    let v = vec[0];
+
+                                    let c = v.chars().next().unwrap();
+
+                                    if c.is_uppercase() {
+                                        rename = quote! {
+                                        #[serde(rename_all = "PascalCase")]
+                                        }
+                                    } else if v.contains("-") {
+                                        rename = quote! {
+                                        #[serde(rename_all = "kebab-case")]
+                                        }
+                                    }
+                                }
 
                             let typ_enum = quote! {
                                 #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
-                                #[serde(rename_all = "camelCase")]
+                                #rename
                                 pub enum #enum_name {
                                     #(#enum_tokens)*
                                 }
@@ -1133,9 +1265,42 @@ pub fn get_events(
                             enum_name.push_str("Option");
                             let enum_name = Ident::new(&enum_name, Span::call_site());
 
+                            let vec: Vec<&String> = enum_vec
+                            .iter()
+                            .filter(|v| {
+                                let c = v.chars().next().unwrap();
+                                if c.is_uppercase() {
+                                    true
+                                } else if v.contains("-") {
+                                    true
+                                } else {
+                                    false
+                                }
+                            })
+                            .collect();
+
+                        let mut rename = quote! {
+                            #[serde(rename_all = "camelCase")]
+                        };
+                        if vec.len() > 0 {
+                            let v = vec[0];
+
+                            let c = v.chars().next().unwrap();
+
+                            if c.is_uppercase() {
+                                rename = quote! {
+                                #[serde(rename_all = "PascalCase")]
+                                }
+                            } else if v.contains("-") {
+                                rename = quote! {
+                                #[serde(rename_all = "kebab-case")]
+                                }
+                            }
+                        }
+
                             let typ_enum = quote! {
                                 #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
-                                #[serde(rename_all = "camelCase")]
+                                #rename
                                 pub enum #enum_name {
                                     #(#enum_tokens)*
                                 }
