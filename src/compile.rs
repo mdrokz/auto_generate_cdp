@@ -269,11 +269,13 @@ fn get_types(
                             if let Some(_) = param.optional {
                                 let v = quote! {
                                     #[serde(skip_serializing_if="Option::is_none")]
+                                    #[serde(default)]
                                     pub #name: Option<#p_type<String>>,
                                 };
                                 object.push(v);
                             } else {
                                 let v = quote! {
+                                    #[serde(default)]
                                     pub #name: #p_type<String>,
                                 };
                                 object.push(v);
@@ -282,11 +284,13 @@ fn get_types(
                             if let Some(_) = param.optional {
                                 let v = quote! {
                                     #[serde(skip_serializing_if="Option::is_none")]
+                                    #[serde(default)]
                                     pub #name: Option<String>,
                                 };
                                 object.push(v);
                             } else {
                                 let v = quote! {
+                                    #[serde(default)]
                                     pub #name: String,
                                 };
                                 object.push(v);
@@ -302,11 +306,13 @@ fn get_types(
                             if let Some(_) = param.optional {
                                 let v = quote! {
                                     #[serde(skip_serializing_if="Option::is_none")]
+                                    #[serde(default)]
                                     pub #name: Option<#p_type<#typ>>,
                                 };
                                 object.push(v);
                             } else {
                                 let v = quote! {
+                                    #[serde(default)]
                                     pub #name: #p_type<#typ>,
                                 };
                                 object.push(v);
@@ -315,11 +321,13 @@ fn get_types(
                             if let Some(_) = param.optional {
                                 let v = quote! {
                                     #[serde(skip_serializing_if="Option::is_none")]
+                                    #[serde(default)]
                                     pub #name: Option<#typ>,
                                 };
                                 object.push(v);
                             } else {
                                 let v = quote! {
+                                    #[serde(default)]
                                     pub #name: #typ,
                                 };
                                 object.push(v);
@@ -740,12 +748,14 @@ pub fn get_commands(
                                 if let Some(_) = return_type.optional {
                                     let v = quote! {
                                         #[serde(skip_serializing_if="Option::is_none")]
+                                        #[serde(default)]
                                         pub #name: Option<String>,
                                     };
 
                                     command_object.push(v);
                                 } else {
                                     let v = quote! {
+                                        #[serde(default)]
                                         pub #name: String,
                                     };
 
@@ -760,12 +770,14 @@ pub fn get_commands(
                                 if let Some(_) = return_type.optional {
                                     let v = quote! {
                                         #[serde(skip_serializing_if="Option::is_none")]
+                                        #[serde(default)]
                                         pub #name: Option<#typ>,
                                     };
 
                                     command_object.push(v);
                                 } else {
                                     let v = quote! {
+                                        #[serde(default)]
                                         pub #name: #typ,
                                     };
 
@@ -921,12 +933,14 @@ pub fn get_parameters(
                                 if let Some(_) = parameter.optional {
                                     let v = quote! {
                                         #[serde(skip_serializing_if="Option::is_none")]
+                                        #[serde(default)]
                                         pub #p_name: Option<Vec<#typ>>,
                                     };
 
                                     parameter_object.push(v);
                                 } else {
                                     let v = quote! {
+                                        #[serde(default)]
                                         pub #p_name: Vec<#typ>,
                                     };
 
@@ -972,39 +986,39 @@ pub fn get_parameters(
                             enum_name.push_str(&sp);
                             enum_name.push_str("Option");
                             let enum_name = Ident::new(&enum_name, Span::call_site());
-                            
+
                             let vec: Vec<&String> = enum_vec
-                                    .iter()
-                                    .filter(|v| {
-                                        let c = v.chars().next().unwrap();
-                                        if c.is_uppercase() {
-                                            true
-                                        } else if v.contains("-") {
-                                            true
-                                        } else {
-                                            false
-                                        }
-                                    })
-                                    .collect();
-
-                                let mut rename = quote! {
-                                    #[serde(rename_all = "camelCase")]
-                                };
-                                if vec.len() > 0 {
-                                    let v = vec[0];
-
+                                .iter()
+                                .filter(|v| {
                                     let c = v.chars().next().unwrap();
-
                                     if c.is_uppercase() {
-                                        rename = quote! {
-                                        #[serde(rename_all = "PascalCase")]
-                                        }
+                                        true
                                     } else if v.contains("-") {
-                                        rename = quote! {
-                                        #[serde(rename_all = "kebab-case")]
-                                        }
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                })
+                                .collect();
+
+                            let mut rename = quote! {
+                                #[serde(rename_all = "camelCase")]
+                            };
+                            if vec.len() > 0 {
+                                let v = vec[0];
+
+                                let c = v.chars().next().unwrap();
+
+                                if c.is_uppercase() {
+                                    rename = quote! {
+                                    #[serde(rename_all = "PascalCase")]
+                                    }
+                                } else if v.contains("-") {
+                                    rename = quote! {
+                                    #[serde(rename_all = "kebab-case")]
                                     }
                                 }
+                            }
 
                             let typ_enum = quote! {
                                 #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
@@ -1032,12 +1046,14 @@ pub fn get_parameters(
                             if let Some(_) = parameter.optional {
                                 let v = quote! {
                                     #[serde(skip_serializing_if="Option::is_none")]
+                                    #[serde(default)]
                                     pub #p_name: Option<String>,
                                 };
 
                                 parameter_object.push(v);
                             } else {
                                 let v = quote! {
+                                    #[serde(default)]
                                     pub #p_name: String,
                                 };
 
@@ -1054,12 +1070,14 @@ pub fn get_parameters(
                             if let Some(_) = parameter.optional {
                                 let v = quote! {
                                     #[serde(skip_serializing_if="Option::is_none")]
+                                    #[serde(default)]
                                     pub #p_name: Option<#typ>,
                                 };
 
                                 parameter_object.push(v);
                             } else {
                                 let v = quote! {
+                                    #[serde(default)]
                                     pub #p_name: #typ,
                                 };
 
@@ -1213,12 +1231,14 @@ pub fn get_events(
                                 if let Some(_) = parameter.optional {
                                     let v = quote! {
                                         #[serde(skip_serializing_if="Option::is_none")]
+                                        #[serde(default)]
                                         pub #p_name: Option<Vec<#typ>>,
                                     };
 
                                     event_object.push(v);
                                 } else {
                                     let v = quote! {
+                                        #[serde(default)]
                                         pub #p_name: Vec<#typ>,
                                     };
 
@@ -1266,37 +1286,37 @@ pub fn get_events(
                             let enum_name = Ident::new(&enum_name, Span::call_site());
 
                             let vec: Vec<&String> = enum_vec
-                            .iter()
-                            .filter(|v| {
+                                .iter()
+                                .filter(|v| {
+                                    let c = v.chars().next().unwrap();
+                                    if c.is_uppercase() {
+                                        true
+                                    } else if v.contains("-") {
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                })
+                                .collect();
+
+                            let mut rename = quote! {
+                                #[serde(rename_all = "camelCase")]
+                            };
+                            if vec.len() > 0 {
+                                let v = vec[0];
+
                                 let c = v.chars().next().unwrap();
+
                                 if c.is_uppercase() {
-                                    true
+                                    rename = quote! {
+                                    #[serde(rename_all = "PascalCase")]
+                                    }
                                 } else if v.contains("-") {
-                                    true
-                                } else {
-                                    false
-                                }
-                            })
-                            .collect();
-
-                        let mut rename = quote! {
-                            #[serde(rename_all = "camelCase")]
-                        };
-                        if vec.len() > 0 {
-                            let v = vec[0];
-
-                            let c = v.chars().next().unwrap();
-
-                            if c.is_uppercase() {
-                                rename = quote! {
-                                #[serde(rename_all = "PascalCase")]
-                                }
-                            } else if v.contains("-") {
-                                rename = quote! {
-                                #[serde(rename_all = "kebab-case")]
+                                    rename = quote! {
+                                    #[serde(rename_all = "kebab-case")]
+                                    }
                                 }
                             }
-                        }
 
                             let typ_enum = quote! {
                                 #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
@@ -1324,12 +1344,14 @@ pub fn get_events(
                             if let Some(_) = parameter.optional {
                                 let v = quote! {
                                     #[serde(skip_serializing_if="Option::is_none")]
+                                    #[serde(default)]
                                     pub #p_name: Option<String>,
                                 };
 
                                 event_object.push(v);
                             } else {
                                 let v = quote! {
+                                    #[serde(default)]
                                     pub #p_name: String,
                                 };
 
@@ -1346,12 +1368,14 @@ pub fn get_events(
                             if let Some(_) = parameter.optional {
                                 let v = quote! {
                                     #[serde(skip_serializing_if="Option::is_none")]
+                                    #[serde(default)]
                                     pub #p_name: Option<#typ>,
                                 };
 
                                 event_object.push(v);
                             } else {
                                 let v = quote! {
+                                    #[serde(default)]
                                     pub #p_name: #typ,
                                 };
 
