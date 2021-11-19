@@ -299,7 +299,7 @@ fn get_types(
                     }
                 }
                 _ => {
-                    let mut type_type: Option<Ident> = type_type.into();
+                    let type_type: Option<Ident> = type_type.into();
 
                     if let Some(typ) = type_type {
                         if let Some(p_type) = previous_type {
@@ -554,7 +554,7 @@ fn get_types(
                     }
                 }
                 _ => {
-                    let mut type_type: Option<Ident> = type_type.into();
+                    let type_type: Option<Ident> = type_type.into();
 
                     if let Some(typ) = type_type {
                         if let Some(p_type) = previous_type {
@@ -772,7 +772,7 @@ pub fn get_commands(
                             }
                         }
                         _ => {
-                            let mut type_type: Option<Ident> = param_type.into();
+                            let type_type: Option<Ident> = param_type.into();
 
                             if let Some(typ) = type_type {
                                 if let Some(_) = return_type.optional {
@@ -1070,9 +1070,7 @@ pub fn get_parameters(
                         }
                     }
                     _ => {
-                        let mut type_type: Option<Ident> = param_type.into();
-
-                        let v = p_name.to_string();
+                        let type_type: Option<Ident> = param_type.into();
 
                         if let Some(typ) = type_type {
                             if let Some(_) = parameter.optional {
@@ -1368,9 +1366,7 @@ pub fn get_events(
                         }
                     }
                     _ => {
-                        let mut type_type: Option<Ident> = param_type.into();
-
-                        let v = p_name.to_string();
+                        let type_type: Option<Ident> = param_type.into();
 
                         if let Some(typ) = type_type {
                             if let Some(_) = parameter.optional {
