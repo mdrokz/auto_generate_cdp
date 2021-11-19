@@ -448,13 +448,21 @@ fn get_types(
                             };
                         }
                     }
-                    objects.push(quote! {
-                            #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
-                            #[serde(rename_all = "camelCase")]
-                            pub struct #name {
-                                #(#object)*
-                            }
-                    });
+                    if object.len() > 0 {
+                        objects.push(quote! {
+                                #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
+                                #[serde(rename_all = "camelCase")]
+                                pub struct #name {
+                                    #(#object)*
+                                }
+                        });
+                    } else {
+                        objects.push(quote! {
+                                #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
+                                #[serde(rename_all = "camelCase")]
+                                pub struct #name(serde_json::Value);
+                        });
+                    }
                 }
                 TypeEnum::String => {
                     if let Some(enum_vec) = typ_element.type_enum.clone() {
@@ -1158,7 +1166,7 @@ pub fn get_parameters(
         parameter_objects.push(quote! {
             #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
             #[serde(rename_all = "camelCase")]
-            pub struct #name {}
+            pub struct #name(serde_json::Value);
         });
     }
 }
@@ -1450,7 +1458,7 @@ pub fn get_events(
         event_objects.push(quote! {
             #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
             #[serde(rename_all = "camelCase")]
-            pub struct #name {}
+            pub struct #name(serde_json::Value);
         });
     }
 }
