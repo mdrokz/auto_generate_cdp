@@ -460,7 +460,7 @@ fn get_types(
                         objects.push(quote! {
                                 #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
                                 #[serde(rename_all = "camelCase")]
-                                pub struct #name(serde_json::Value);
+                                pub struct #name(Option<serde_json::Value>);
                         });
                     }
                 }
@@ -1164,7 +1164,7 @@ pub fn get_parameters(
         parameter_objects.push(quote! {
             #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
             #[serde(rename_all = "camelCase")]
-            pub struct #name(serde_json::Value);
+            pub struct #name(Option<serde_json::Value>);
         });
     }
 }
@@ -1454,7 +1454,7 @@ pub fn get_events(
         event_objects.push(quote! {
             #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
             #[serde(rename_all = "camelCase")]
-            pub struct #name(serde_json::Value);
+            pub struct #name(Option<serde_json::Value>);
         });
     }
 }
