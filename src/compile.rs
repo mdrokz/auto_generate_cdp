@@ -73,7 +73,6 @@ fn tokenize_enum(enum_vec: &Vec<String>, enum_name: String) -> (Ident, TokenStre
                         .map(|s| {
                             let mut upper = s.to_string();
                             upper.first_uppercase();
-
                             upper
                         })
                         .collect::<Vec<String>>()
@@ -84,10 +83,14 @@ fn tokenize_enum(enum_vec: &Vec<String>, enum_name: String) -> (Ident, TokenStre
                     Ident::new(&e.to_case(Case::Pascal), Span::call_site())
                 };
             quote! {
+                // tend to use serde renaming to keep compatities
+                #[serde(rename = #e)]
                 #enum_type,
             }
         }).collect();
     let enum_name = Ident::new(&enum_name, Span::call_site());
+
+    /*
     // FIXME: Some special case not covered by rename-all
     let vec: Vec<&String> = enum_vec
         .iter()
@@ -118,11 +121,11 @@ fn tokenize_enum(enum_vec: &Vec<String>, enum_name: String) -> (Ident, TokenStre
                 #[serde(rename_all = "kebab-case")]
             }
         }
-    }
+    } */
 
     let typ_enum = quote! {
         #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
-        #rename
+        // #rename
         pub enum #enum_name {
             #(#enum_tokens)*
         }
