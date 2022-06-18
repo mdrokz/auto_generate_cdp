@@ -1176,10 +1176,10 @@ pub fn get_events(
     }
 }
 
-pub fn compile_cdp_json(file_name: &str) -> (Vec<TokenStream>, Vec<TokenStream>) {
+pub fn compile_cdp_json(file_name: &str, commit: &str) -> (Vec<TokenStream>, Vec<TokenStream>) {
     let url = format!(
-        "https://raw.githubusercontent.com/ChromeDevTools/devtools-protocol/master/json/{}",
-        file_name
+        "https://raw.githubusercontent.com/ChromeDevTools/devtools-protocol/{}/json/{}",
+        commit, file_name
     );
 
     let json = reqwest::blocking::get(url)
