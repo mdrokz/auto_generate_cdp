@@ -13,6 +13,7 @@ mod compile;
 use crate::compile::compile_cdp_json;
 
 pub fn init() {
+    const CDP_COMMIT: &str = "15f524c8f5ce5b317ddcdf5e6f875d6eb8bdac88";
     let mut file = OpenOptions::new()
         .append(true)
         .create(true)
@@ -22,9 +23,13 @@ pub fn init() {
     file.sync_all().unwrap();
 
     if file.metadata().unwrap().len() <= 0 {
-        let (js_mods,js_events) = compile_cdp_json("./js_protocol.json");
+        let (js_mods,js_events) =
+            compile_cdp_json("./js_protocol.json", CDP_COMMIT);
 
-        let (browser_mods,browser_events) = compile_cdp_json("./browser_protocol.json");
+        let (browser_mods,browser_events) =
+            compile_cdp_json("./browser_protocol.json", CDP_COMMIT);
+
+        writeln!(file, "// Auto-generated from ChromeDevTools/devtools-protocol at commit {}", CDP_COMMIT).unwrap();
 
         let modv = quote! {
             pub mod cdp {
@@ -100,5 +105,13 @@ pub fn init() {
             .arg("./src/protocol.rs")
             .output()
             .unwrap();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test() {
+        crate::init();
     }
 }
