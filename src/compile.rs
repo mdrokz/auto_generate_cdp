@@ -9,6 +9,7 @@ use quote::quote;
 
 pub trait StringUtils {
     fn first_uppercase(&mut self);
+    fn first_uppercased(self) -> Self;
     fn replace_if<F>(self, from: &str, to: &str, predicate: F) -> String
     where
         F: FnOnce() -> bool;
@@ -23,6 +24,13 @@ impl StringUtils for String {
             .collect::<Vec<char>>();
 
         self.clone_from(&String::from_iter(s));
+    }
+
+    fn first_uppercased(self) -> Self {
+        self.chars()
+            .enumerate()
+            .map(|(i, f)| if i == 0 { f.to_ascii_uppercase() } else { f })
+            .collect()
     }
 
     fn replace_if<F>(self, from: &str, to: &str, predicate: F) -> String
@@ -53,6 +61,73 @@ impl Into<Option<Ident>> for TypeEnum {
 enum PropertyType<'a> {
     Param(&'a Parameter),
     Element(&'a TypeElement),
+}
+
+fn tokenize_enum(enum_vec: &Vec<String>, enum_name: String) -> (Ident, TokenStream) {
+    let enum_tokens: Vec<TokenStream> =
+        enum_vec.iter().map(|e| {
+            let enum_type =
+                if e.contains("-") {
+                    let enum_type = e
+                        .split("-")
+                        .map(|s| {
+                            let mut upper = s.to_string();
+                            upper.first_uppercase();
+
+                            upper
+                        })
+                        .collect::<Vec<String>>()
+                        .join("");
+
+                    Ident::new(&enum_type, Span::call_site())
+                } else {
+                    Ident::new(&e.to_case(Case::Pascal), Span::call_site())
+                };
+            quote! {
+                #enum_type,
+            }
+        }).collect();
+    let enum_name = Ident::new(&enum_name, Span::call_site());
+    // FIXME: Some special case not covered by rename-all
+    let vec: Vec<&String> = enum_vec
+        .iter()
+        .filter(|v| {
+            let c = v.chars().next().unwrap();
+            if c.is_uppercase() {
+                true
+            } else if v.contains("-") {
+                true
+            } else {
+                false
+            }
+        })
+        .collect();
+
+    let mut rename = quote! {
+        #[serde(rename_all = "camelCase")]
+    };
+    if vec.len() > 0 {
+        let v = vec[0];
+        let c = v.chars().next().unwrap();
+        if c.is_uppercase() {
+            rename = quote! {
+                #[serde(rename_all = "PascalCase")]
+            }
+        } else if v.contains("-") {
+            rename = quote! {
+                #[serde(rename_all = "kebab-case")]
+            }
+        }
+    }
+
+    let typ_enum = quote! {
+        #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
+        #rename
+        pub enum #enum_name {
+            #(#enum_tokens)*
+        }
+    };
+    (enum_name, typ_enum)
 }
 
 fn get_types(
@@ -153,87 +228,11 @@ fn get_types(
                     }
                 }
                 TypeEnum::String => {
-                    if let Some(enum_vec) = param.parameter_enum.clone() {
-                        let mut enum_tokens: Vec<TokenStream> = vec![];
-
-                        for e in enum_vec.clone() {
-                            if e.contains("-") {
-                                let enum_type = e
-                                    .split("-")
-                                    .map(|s| {
-                                        let mut upper = s.to_string();
-                                        upper.first_uppercase();
-
-                                        upper
-                                    })
-                                    .collect::<Vec<String>>()
-                                    .join("");
-
-                                let enum_type = Ident::new(&enum_type, Span::call_site());
-
-                                enum_tokens.push(quote! {
-                                    #enum_type,
-                                });
-                            } else {
-                                let enum_type =
-                                    Ident::new(&e.to_case(Case::Pascal), Span::call_site());
-                                enum_tokens.push(quote! {
-                                    #enum_type,
-                                });
-                            }
-                        }
-                        let element_name = type_element.unwrap();
-
-                        let mut enum_name = String::new();
-
-                        enum_name = String::from(element_name.id.clone());
-                        enum_name.push_str(&name.to_string().to_case(Case::Pascal));
-                        enum_name = enum_name.to_case(Case::Pascal);
-
-                        enum_name.first_uppercase();
-
-                        let enum_name = Ident::new(&enum_name, Span::call_site());
-
-                        let vec: Vec<&String> = enum_vec
-                            .iter()
-                            .filter(|v| {
-                                let c = v.chars().next().unwrap();
-                                if c.is_uppercase() {
-                                    true
-                                } else if v.contains("-") {
-                                    true
-                                } else {
-                                    false
-                                }
-                            })
-                            .collect();
-
-                        let mut rename = quote! {
-                            #[serde(rename_all = "camelCase")]
-                        };
-                        if vec.len() > 0 {
-                            let v = vec[0];
-
-                            let c = v.chars().next().unwrap();
-
-                            if c.is_uppercase() {
-                                rename = quote! {
-                                #[serde(rename_all = "PascalCase")]
-                                }
-                            } else if v.contains("-") {
-                                rename = quote! {
-                                #[serde(rename_all = "kebab-case")]
-                                }
-                            }
-                        }
-
-                        let typ_enum = quote! {
-                            #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
-                            #rename
-                            pub enum #enum_name {
-                                #(#enum_tokens)*
-                            }
-                        };
+                    if let Some(enum_vec) = &param.parameter_enum {
+                        let (enum_name, typ_enum) = tokenize_enum(
+                            enum_vec,
+                            (type_element.unwrap().id.clone()
+                                + &name.to_string().to_case(Case::Pascal)).to_case(Case::Pascal));
 
                         if let Some(p_type) = previous_type {
                             if let Some(_) = param.optional {
@@ -262,7 +261,6 @@ fn get_types(
                                 object.push(v);
                             }
                         }
-
                         enums.push(typ_enum);
                     } else {
                         if let Some(p_type) = previous_type {
@@ -466,76 +464,7 @@ fn get_types(
                 }
                 TypeEnum::String => {
                     if let Some(enum_vec) = typ_element.type_enum.clone() {
-                        let mut enum_tokens: Vec<TokenStream> = vec![];
-
-                        for e in enum_vec.clone() {
-                            if e.contains("-") {
-                                let enum_type = e
-                                    .split("-")
-                                    .map(|s| {
-                                        let mut upper = s.to_string();
-                                        upper.first_uppercase();
-
-                                        upper
-                                    })
-                                    .collect::<Vec<String>>()
-                                    .join("");
-
-                                let enum_type = Ident::new(&enum_type, Span::call_site());
-
-                                enum_tokens.push(quote! {
-                                    #enum_type,
-                                });
-                            } else {
-                                let enum_type =
-                                    Ident::new(&e.to_case(Case::Pascal), Span::call_site());
-                                enum_tokens.push(quote! {
-                                    #enum_type,
-                                });
-                            }
-                        }
-
-                        let vec: Vec<&String> = enum_vec
-                            .iter()
-                            .filter(|v| {
-                                let c = v.chars().next().unwrap();
-                                if c.is_uppercase() {
-                                    true
-                                } else if v.contains("-") {
-                                    true
-                                } else {
-                                    false
-                                }
-                            })
-                            .collect();
-
-                        let mut rename = quote! {
-                            #[serde(rename_all = "camelCase")]
-                        };
-                        if vec.len() > 0 {
-                            let v = vec[0];
-
-                            let c = v.chars().next().unwrap();
-
-                            if c.is_uppercase() {
-                                rename = quote! {
-                                #[serde(rename_all = "PascalCase")]
-                                }
-                            } else if v.contains("-") {
-                                rename = quote! {
-                                #[serde(rename_all = "kebab-case")]
-                                }
-                            }
-                        }
-
-                        let typ_enum = quote! {
-                            #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
-                            #rename
-                            pub enum #name {
-                                #(#enum_tokens)*
-                            }
-                        };
-
+                        let (_, typ_enum) = tokenize_enum(&enum_vec, name.to_string());
                         enums.push(typ_enum);
                     } else {
                         if let Some(p_type) = previous_type {
@@ -661,83 +590,10 @@ pub fn get_commands(
                         }
                         TypeEnum::String => {
                             if let Some(enum_vec) = &return_type.parameter_enum {
-                                let mut enum_tokens: Vec<TokenStream> = vec![];
-
-                                for e in enum_vec {
-                                    if e.contains("-") {
-                                        let enum_type = e
-                                            .split("-")
-                                            .map(|s| {
-                                                let mut upper = s.to_string();
-                                                upper.first_uppercase();
-
-                                                upper
-                                            })
-                                            .collect::<Vec<String>>()
-                                            .join("");
-
-                                        let enum_type = Ident::new(&enum_type, Span::call_site());
-
-                                        enum_tokens.push(quote! {
-                                            #enum_type,
-                                        });
-                                    } else {
-                                        let enum_type =
-                                            Ident::new(&e.to_case(Case::Pascal), Span::call_site());
-                                        enum_tokens.push(quote! {
-                                            #enum_type,
-                                        });
-                                    }
-                                }
-
-                                let mut enum_name = name.to_string().to_case(Case::Pascal);
-                                // let mut sp = p_name.to_string();
-                                // sp.first_uppercase();
-                                // enum_name.push_str(&sp);
-                                enum_name.push_str("Option");
-                                let enum_name = Ident::new(&enum_name, Span::call_site());
-
-                                let vec: Vec<&String> = enum_vec
-                                    .iter()
-                                    .filter(|v| {
-                                        let c = v.chars().next().unwrap();
-                                        if c.is_uppercase() {
-                                            true
-                                        } else if v.contains("-") {
-                                            true
-                                        } else {
-                                            false
-                                        }
-                                    })
-                                    .collect();
-
-                                let mut rename = quote! {
-                                    #[serde(rename_all = "camelCase")]
-                                };
-                                if vec.len() > 0 {
-                                    let v = vec[0];
-
-                                    let c = v.chars().next().unwrap();
-
-                                    if c.is_uppercase() {
-                                        rename = quote! {
-                                        #[serde(rename_all = "PascalCase")]
-                                        }
-                                    } else if v.contains("-") {
-                                        rename = quote! {
-                                        #[serde(rename_all = "kebab-case")]
-                                        }
-                                    }
-                                }
-
-                                let typ_enum = quote! {
-                                    #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
-                                    #rename
-                                    pub enum #enum_name {
-                                        #(#enum_tokens)*
-                                    }
-                                };
-
+                                let (enum_name, typ_enum) =
+                                    tokenize_enum(enum_vec,
+                                                  name.to_string().to_case(Case::Pascal)
+                                                      + "Option");
                                 enums.push(typ_enum);
 
                                 if let Some(_) = return_type.optional {
@@ -746,7 +602,7 @@ pub fn get_commands(
                                         pub #name: Option<#enum_name>,
                                     };
                                     command_object.push(v);
-                                } else {
+                            } else {
                                     let v = quote! {
                                         pub #name: #enum_name,
                                     };
@@ -959,83 +815,12 @@ pub fn get_parameters(
                     }
                     TypeEnum::String => {
                         if let Some(enum_vec) = &parameter.parameter_enum {
-                            let mut enum_tokens: Vec<TokenStream> = vec![];
-
-                            for e in enum_vec {
-                                if e.contains("-") {
-                                    let enum_type = e
-                                        .split("-")
-                                        .map(|s| {
-                                            let mut upper = s.to_string();
-                                            upper.first_uppercase();
-
-                                            upper
-                                        })
-                                        .collect::<Vec<String>>()
-                                        .join("");
-
-                                    let enum_type = Ident::new(&enum_type, Span::call_site());
-
-                                    enum_tokens.push(quote! {
-                                        #enum_type,
-                                    });
-                                } else {
-                                    let enum_type =
-                                        Ident::new(&e.to_case(Case::Pascal), Span::call_site());
-                                    enum_tokens.push(quote! {
-                                        #enum_type,
-                                    });
-                                }
-                            }
-
-                            let mut enum_name = name.to_string();
-                            let mut sp = p_name.to_string();
-                            sp.first_uppercase();
-                            enum_name.push_str(&sp);
-                            enum_name.push_str("Option");
-                            let enum_name = Ident::new(&enum_name, Span::call_site());
-
-                            let vec: Vec<&String> = enum_vec
-                                .iter()
-                                .filter(|v| {
-                                    let c = v.chars().next().unwrap();
-                                    if c.is_uppercase() {
-                                        true
-                                    } else if v.contains("-") {
-                                        true
-                                    } else {
-                                        false
-                                    }
-                                })
-                                .collect();
-
-                            let mut rename = quote! {
-                                #[serde(rename_all = "camelCase")]
-                            };
-                            if vec.len() > 0 {
-                                let v = vec[0];
-
-                                let c = v.chars().next().unwrap();
-
-                                if c.is_uppercase() {
-                                    rename = quote! {
-                                    #[serde(rename_all = "PascalCase")]
-                                    }
-                                } else if v.contains("-") {
-                                    rename = quote! {
-                                    #[serde(rename_all = "kebab-case")]
-                                    }
-                                }
-                            }
-
-                            let typ_enum = quote! {
-                                #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
-                                #rename
-                                pub enum #enum_name {
-                                    #(#enum_tokens)*
-                                }
-                            };
-
+                            let (enum_name, typ_enum) = tokenize_enum(
+                                enum_vec,
+                                name.to_string()
+                                    + &p_name.to_string().first_uppercased()
+                                    + "Option"
+                            );
                             enums.push(typ_enum);
 
                             if let Some(_) = parameter.optional {
@@ -1255,83 +1040,12 @@ pub fn get_events(
                     }
                     TypeEnum::String => {
                         if let Some(enum_vec) = &parameter.parameter_enum {
-                            let mut enum_tokens: Vec<TokenStream> = vec![];
-
-                            for e in enum_vec {
-                                if e.contains("-") {
-                                    let enum_type = e
-                                        .split("-")
-                                        .map(|s| {
-                                            let mut upper = s.to_string();
-                                            upper.first_uppercase();
-
-                                            upper
-                                        })
-                                        .collect::<Vec<String>>()
-                                        .join("");
-
-                                    let enum_type = Ident::new(&enum_type, Span::call_site());
-
-                                    enum_tokens.push(quote! {
-                                        #enum_type,
-                                    });
-                                } else {
-                                    let enum_type =
-                                        Ident::new(&e.to_case(Case::Pascal), Span::call_site());
-                                    enum_tokens.push(quote! {
-                                        #enum_type,
-                                    });
-                                }
-                            }
-
-                            let mut enum_name = name.to_string();
-                            let mut sp = p_name.to_string();
-                            sp.first_uppercase();
-                            enum_name.push_str(&sp);
-                            enum_name.push_str("Option");
-                            let enum_name = Ident::new(&enum_name, Span::call_site());
-
-                            let vec: Vec<&String> = enum_vec
-                                .iter()
-                                .filter(|v| {
-                                    let c = v.chars().next().unwrap();
-                                    if c.is_uppercase() {
-                                        true
-                                    } else if v.contains("-") {
-                                        true
-                                    } else {
-                                        false
-                                    }
-                                })
-                                .collect();
-
-                            let mut rename = quote! {
-                                #[serde(rename_all = "camelCase")]
-                            };
-                            if vec.len() > 0 {
-                                let v = vec[0];
-
-                                let c = v.chars().next().unwrap();
-
-                                if c.is_uppercase() {
-                                    rename = quote! {
-                                    #[serde(rename_all = "PascalCase")]
-                                    }
-                                } else if v.contains("-") {
-                                    rename = quote! {
-                                    #[serde(rename_all = "kebab-case")]
-                                    }
-                                }
-                            }
-
-                            let typ_enum = quote! {
-                                #[derive(Deserialize,Serialize, Debug,Clone,PartialEq)]
-                                #rename
-                                pub enum #enum_name {
-                                    #(#enum_tokens)*
-                                }
-                            };
-
+                            let (enum_name, typ_enum) = tokenize_enum(
+                                enum_vec,
+                                name.to_string()
+                                    + &p_name.to_string().first_uppercased()
+                                    + "Option"
+                            );
                             enums.push(typ_enum);
 
                             if let Some(_) = parameter.optional {
