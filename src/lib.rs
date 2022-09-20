@@ -32,6 +32,10 @@ pub fn init() {
         writeln!(file, "// Auto-generated from ChromeDevTools/devtools-protocol at commit {}", CDP_COMMIT).unwrap();
 
         let modv = quote! {
+            #[allow(unused)]
+            #[allow(non_camel_case_types)]
+            #[allow(non_snake_case)]
+            
             pub mod cdp {
 
                 pub mod types {
