@@ -147,8 +147,9 @@ fn get_types(
     match property_type {
         PropertyType::Param(param) => {
             // || param.name.starts_with("type")
+            let param_name = &param.name;
             let name = Ident::new(
-                &String::from(param.name.clone().to_case(Case::Snake).replace_if(
+                &String::from(param_name.to_case(Case::Snake).replace_if(
                     "type",
                     "Type",
                     || param.name.starts_with("type"),
@@ -165,11 +166,13 @@ fn get_types(
                             if let Some(_) = param.optional {
                                 let v = quote! {
                                     #[serde(skip_serializing_if="Option::is_none")]
+                                    #[serde(rename = #param_name)]
                                     pub #name: Option<#p_type<#p_ref>>,
                                 };
                                 object.push(v);
                             } else {
                                 let v = quote! {
+                                    #[serde(rename = #param_name)]
                                     pub #name: #p_type<#p_ref>,
                                 };
                                 object.push(v);
@@ -204,11 +207,13 @@ fn get_types(
                             if let Some(_) = param.optional {
                                 let v = quote! {
                                     #[serde(skip_serializing_if="Option::is_none")]
+                                    #[serde(rename = #param_name)]
                                     pub #name: Option<Vec<#(#dep)::*>>,
                                 };
                                 object.push(v);
                             } else {
                                 let v = quote! {
+                                    #[serde(rename = #param_name)]
                                     pub #name: Vec<#(#dep)::*>,
                                 };
                                 object.push(v);
@@ -241,11 +246,13 @@ fn get_types(
                             if let Some(_) = param.optional {
                                 let v = quote! {
                                     #[serde(skip_serializing_if="Option::is_none")]
+                                    #[serde(rename = #param_name)]
                                     pub #name: Option<#p_type<#enum_name>>,
                                 };
                                 object.push(v);
                             } else {
                                 let v = quote! {
+                                    #[serde(rename = #param_name)]
                                     pub #name: #p_type<#enum_name>,
                                 };
                                 object.push(v);
@@ -254,11 +261,13 @@ fn get_types(
                             if let Some(_) = param.optional {
                                 let v = quote! {
                                     #[serde(skip_serializing_if="Option::is_none")]
+                                    #[serde(rename = #param_name)]
                                     pub #name: Option<#enum_name>,
                                 };
                                 object.push(v);
                             } else {
                                 let v = quote! {
+                                    #[serde(rename = #param_name)]
                                     pub #name: #enum_name,
                                 };
                                 object.push(v);
@@ -271,12 +280,14 @@ fn get_types(
                                 let v = quote! {
                                     #[serde(skip_serializing_if="Option::is_none")]
                                     #[serde(default)]
+                                    #[serde(rename = #param_name)]
                                     pub #name: Option<#p_type<String>>,
                                 };
                                 object.push(v);
                             } else {
                                 let v = quote! {
                                     #[serde(default)]
+                                    #[serde(rename = #param_name)]
                                     pub #name: #p_type<String>,
                                 };
                                 object.push(v);
@@ -286,12 +297,14 @@ fn get_types(
                                 let v = quote! {
                                     #[serde(skip_serializing_if="Option::is_none")]
                                     #[serde(default)]
+                                    #[serde(rename = #param_name)]
                                     pub #name: Option<String>,
                                 };
                                 object.push(v);
                             } else {
                                 let v = quote! {
                                     #[serde(default)]
+                                    #[serde(rename = #param_name)]
                                     pub #name: String,
                                 };
                                 object.push(v);
@@ -308,12 +321,14 @@ fn get_types(
                                 let v = quote! {
                                     #[serde(skip_serializing_if="Option::is_none")]
                                     #[serde(default)]
+                                    #[serde(rename = #param_name)]
                                     pub #name: Option<#p_type<#typ>>,
                                 };
                                 object.push(v);
                             } else {
                                 let v = quote! {
                                     #[serde(default)]
+                                    #[serde(rename = #param_name)]
                                     pub #name: #p_type<#typ>,
                                 };
                                 object.push(v);
@@ -323,12 +338,14 @@ fn get_types(
                                 let v = quote! {
                                     #[serde(skip_serializing_if="Option::is_none")]
                                     #[serde(default)]
+                                    #[serde(rename = #param_name)]
                                     pub #name: Option<#typ>,
                                 };
                                 object.push(v);
                             } else {
                                 let v = quote! {
                                     #[serde(default)]
+                                    #[serde(rename = #param_name)]
                                     pub #name: #typ,
                                 };
                                 object.push(v);
@@ -339,7 +356,8 @@ fn get_types(
             }
         }
         PropertyType::Element(typ_element) => {
-            let name = Ident::new(&typ_element.id, Span::call_site());
+            let element_id = &typ_element.id;
+            let name = Ident::new(element_id, Span::call_site());
 
             match type_type {
                 TypeEnum::Array => {
@@ -1052,8 +1070,8 @@ pub fn get_events(
 
                                 if let Some(_) = parameter.optional {
                                     let v = quote! {
-                                        #[serde(rename = #parameter_name)]
                                         #[serde(skip_serializing_if="Option::is_none")]
+                                        #[serde(rename = #parameter_name)]
                                         pub #p_name: Option<Vec<super::#ref_type>>,
                                     };
                                     event_object.push(v);
