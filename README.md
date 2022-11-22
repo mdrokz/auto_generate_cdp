@@ -1,12 +1,16 @@
 # auto_generate_cdp
-experimental crate to generate the Chrome Devtools Protocol.
+[![Docs](https://docs.rs/auto_generate_cdp/badge.svg)](https://docs.rs/auto_generate_cdp)
+[![Crates.io](https://img.shields.io/crates/v/auto_generate_cdp.svg?maxAge=2592000)](https://crates.io/crates/auto_generate_cdp)
 
+An experimental crate to generate the Chrome Devtools Protocol.
+
+[![Contributors](https://img.shields.io/github/contributors/mdrokz/auto_generate_cdp.svg)](https://github.com/mdrokz/auto_generate_cdp/graphs/contributors)
 
 # Usage
 
-Cargo.toml
-```
+Add the following to your `Cargo.toml`:
 
+```toml
 [dependencies]
 serde = {version = "1", features = ["derive"]}
 serde_json = '1'
@@ -15,15 +19,14 @@ serde_json = '1'
 auto_generate_cdp = "0.2.9"
 ```
 
-build.rs
+To generate the protocol, add the following to your `build/build.rs` script.
 
-```
+```rust
 use auto_generate_cdp::init;
 
 fn main() {
   init();
 }
-
 ```
 
-this will generate `protocol.rs` when you do `cargo check` or `cargo build` in your src folder which you can use in your crate
+This will generate `protocol.rs` in your `src/` folder when you run `$ cargo check` or `$ cargo build`.
