@@ -64,30 +64,31 @@ enum PropertyType<'a> {
 }
 
 fn tokenize_enum(enum_vec: &Vec<String>, enum_name: String) -> (Ident, TokenStream) {
-    let enum_tokens: Vec<TokenStream> =
-        enum_vec.iter().map(|e| {
-            let enum_type =
-                if e.contains("-") {
-                    let enum_type = e
-                        .split("-")
-                        .map(|s| {
-                            let mut upper = s.to_string();
-                            upper.first_uppercase();
-                            upper
-                        })
-                        .collect::<Vec<String>>()
-                        .join("");
+    let enum_tokens: Vec<TokenStream> = enum_vec
+        .iter()
+        .map(|e| {
+            let enum_type = if e.contains("-") {
+                let enum_type = e
+                    .split("-")
+                    .map(|s| {
+                        let mut upper = s.to_string();
+                        upper.first_uppercase();
+                        upper
+                    })
+                    .collect::<Vec<String>>()
+                    .join("");
 
-                    Ident::new(&enum_type, Span::call_site())
-                } else {
-                    Ident::new(&e.to_case(Case::Pascal), Span::call_site())
-                };
+                Ident::new(&enum_type, Span::call_site())
+            } else {
+                Ident::new(&e.to_case(Case::Pascal), Span::call_site())
+            };
             quote! {
                 // tend to use serde renaming to keep compatities
                 #[serde(rename = #e)]
                 #enum_type,
             }
-        }).collect();
+        })
+        .collect();
     let enum_name = Ident::new(&enum_name, Span::call_site());
 
     /*
@@ -149,11 +150,11 @@ fn get_types(
             // || param.name.starts_with("type")
             let param_name = &param.name;
             let name = Ident::new(
-                &String::from(param_name.to_case(Case::Snake).replace_if(
-                    "type",
-                    "Type",
-                    || param.name.starts_with("type"),
-                )),
+                &String::from(
+                    param_name
+                        .to_case(Case::Snake)
+                        .replace_if("type", "Type", || param.name.starts_with("type")),
+                ),
                 Span::call_site(),
             );
 
@@ -240,7 +241,9 @@ fn get_types(
                         let (enum_name, typ_enum) = tokenize_enum(
                             enum_vec,
                             (type_element.unwrap().id.clone()
-                                + &name.to_string().to_case(Case::Pascal)).to_case(Case::Pascal));
+                                + &name.to_string().to_case(Case::Pascal))
+                                .to_case(Case::Pascal),
+                        );
 
                         if let Some(p_type) = previous_type {
                             if let Some(_) = param.optional {
@@ -623,10 +626,10 @@ pub fn get_commands(
                         }
                         TypeEnum::String => {
                             if let Some(enum_vec) = &return_type.parameter_enum {
-                                let (enum_name, typ_enum) =
-                                    tokenize_enum(enum_vec,
-                                                  name.to_string().to_case(Case::Pascal)
-                                                      + "Option");
+                                let (enum_name, typ_enum) = tokenize_enum(
+                                    enum_vec,
+                                    name.to_string().to_case(Case::Pascal) + "Option",
+                                );
                                 enums.push(typ_enum);
 
                                 if let Some(_) = return_type.optional {
@@ -636,7 +639,7 @@ pub fn get_commands(
                                         pub #name: Option<#enum_name>,
                                     };
                                     command_object.push(v);
-                            } else {
+                                } else {
                                     let v = quote! {
                                         #[serde(rename = #ret_type_name)]
                                         pub #name: #enum_name,
@@ -773,7 +776,7 @@ pub fn get_parameters(
         for parameter in parameters {
             let parameter_name = &parameter.name;
             let p_name = Ident::new(
-                    &parameter_name
+                &parameter_name
                     .to_case(Case::Snake)
                     .replace("type", "Type")
                     .replace("override", "Override"),
@@ -870,7 +873,7 @@ pub fn get_parameters(
                                 enum_vec,
                                 name.to_string()
                                     + &p_name.to_string().first_uppercased()
-                                    + "Option"
+                                    + "Option",
                             );
                             enums.push(typ_enum);
 
@@ -1029,8 +1032,7 @@ pub fn get_events(
     if let Some(parameters) = event.parameters {
         let mut event_object = Vec::new();
         for parameter in parameters {
-            let parameter_name = &parameter
-            .name;
+            let parameter_name = &parameter.name;
             let p_name = Ident::new(
                 &parameter_name
                     .to_case(Case::Snake)
@@ -1114,7 +1116,7 @@ pub fn get_events(
                                 enum_vec,
                                 name.to_string()
                                     + &p_name.to_string().first_uppercased()
-                                    + "Option"
+                                    + "Option",
                             );
                             enums.push(typ_enum);
 
@@ -1261,9 +1263,10 @@ pub fn compile_cdp_json(file_name: &str, commit: &str) -> (Vec<TokenStream>, Vec
         commit, file_name
     );
 
-    let json = reqwest::blocking::get(url)
+    let json = ureq::get(&url)
+        .call()
         .expect("incorrect file name")
-        .text()
+        .into_string()
         .unwrap();
 
     let protocol: Protocol = serde_json::from_str(&json).unwrap();

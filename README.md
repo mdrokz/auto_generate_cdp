@@ -29,4 +29,22 @@ fn main() {
 }
 ```
 
-This will generate `protocol.rs` in your `src/` folder when you run `$ cargo check` or `$ cargo build`.
+This will generate `protocol.rs` in your `$OUT_DIR` folder when you run `$ cargo check` or `$ cargo build`. Use like:
+
+
+```rust
+// src/protocol.rs
+
+include!(concat!(env!("OUT_DIR"), "/protocol.rs"));
+
+```
+
+```rust
+// src/main.rs
+
+mod protocol;
+
+fn main() {
+  // protocol module contains the definitions now
+}
+```
