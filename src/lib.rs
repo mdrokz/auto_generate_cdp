@@ -2,6 +2,8 @@ extern crate proc_macro2;
 
 use quote::quote;
 
+use std::env;
+use std::path::Path;
 use std::{fs::OpenOptions, process::Command};
 
 use std::io::prelude::*;
@@ -14,28 +16,34 @@ use crate::compile::compile_cdp_json;
 
 pub fn init() {
     const CDP_COMMIT: &str = "15f524c8f5ce5b317ddcdf5e6f875d6eb8bdac88";
+    let out_dir = env::var_os("OUT_DIR").unwrap();
+    let out_file = Path::new(&out_dir).join("protocol.rs");
     let mut file = OpenOptions::new()
         .append(true)
         .create(true)
-        .open(format!("./src/protocol.rs"))
+        .open(&out_file)
         .unwrap();
 
     file.sync_all().unwrap();
 
     if file.metadata().unwrap().len() <= 0 {
-        let (js_mods,js_events) =
-            compile_cdp_json("./js_protocol.json", CDP_COMMIT);
+        let (js_mods, js_events) = compile_cdp_json("./js_protocol.json", CDP_COMMIT);
 
-        let (browser_mods,browser_events) =
+        let (browser_mods, browser_events) =
             compile_cdp_json("./browser_protocol.json", CDP_COMMIT);
 
-        writeln!(file, "// Auto-generated from ChromeDevTools/devtools-protocol at commit {}", CDP_COMMIT).unwrap();
+        writeln!(
+            file,
+            "// Auto-generated from ChromeDevTools/devtools-protocol at commit {}",
+            CDP_COMMIT
+        )
+        .unwrap();
 
         let modv = quote! {
             #[allow(unused)]
             #[allow(non_camel_case_types)]
             #[allow(non_snake_case)]
-            
+
             pub mod cdp {
 
                 pub mod types {
@@ -105,10 +113,7 @@ pub fn init() {
 
         writeln!(file, "{}", modv.to_string()).unwrap();
 
-        Command::new("rustfmt")
-            .arg("./src/protocol.rs")
-            .output()
-            .unwrap();
+        Command::new("rustfmt").arg(&out_file).output().unwrap();
     }
 }
 
