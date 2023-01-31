@@ -1,4 +1,4 @@
-use std::iter::FromIterator;
+use std::{iter::FromIterator, path::Path};
 
 use convert_case::{Case, Casing};
 
@@ -1257,19 +1257,37 @@ pub fn get_events(
     }
 }
 
+pub fn check_json(file_name: &str, commit: &str) -> Protocol {
+    if cfg!(feature = "docs-rs") || std::env::var("DOCS_RS").is_ok() {
+        // code to run when building inside a docs.rs environment
+
+        let path = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+        let path = Path::new(&path).join("json").join(file_name);
+        let json = std::fs::read_to_string(path).unwrap();
+
+        let protocol: Protocol = serde_json::from_str(&json).unwrap();
+
+        protocol
+    } else {
+        let url = format!(
+            "https://raw.githubusercontent.com/ChromeDevTools/devtools-protocol/{}/json/{}",
+            commit, file_name
+        );
+
+        let json = ureq::get(&url)
+            .call()
+            .expect("incorrect file name")
+            .into_string()
+            .unwrap();
+
+        let protocol: Protocol = serde_json::from_str(&json).unwrap();
+
+        protocol
+    }
+}
+
 pub fn compile_cdp_json(file_name: &str, commit: &str) -> (Vec<TokenStream>, Vec<TokenStream>) {
-    let url = format!(
-        "https://raw.githubusercontent.com/ChromeDevTools/devtools-protocol/{}/json/{}",
-        commit, file_name
-    );
-
-    let json = ureq::get(&url)
-        .call()
-        .expect("incorrect file name")
-        .into_string()
-        .unwrap();
-
-    let protocol: Protocol = serde_json::from_str(&json).unwrap();
+    let protocol = check_json(file_name, commit);
 
     let mut mods = Vec::new();
     let mut event_parts = Vec::new();
