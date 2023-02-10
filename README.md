@@ -48,3 +48,17 @@ fn main() {
   // protocol module contains the definitions now
 }
 ```
+
+## Compiling behind a firewall
+
+auto_generate_cdp needs to fetch files from `raw.githubusercontent.com` during compilation.
+
+If for whatever reason you cannot access `raw.githubusercontent.com` directly
+(e.g. corporate firewall and/or internet censorship), you can try using a proxy server
+by setting any one of the following environment variables: `https_proxy`, `http_proxy`,
+`ALL_PROXY`. For example:
+
+```sh
+# proxy server uses curl format
+https_proxy=http://localhost:8080 cargo build
+```
