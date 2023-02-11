@@ -1293,7 +1293,11 @@ pub fn check_json(file_name: &str, commit: &str) -> Protocol {
         let json = ureq_agent
             .get(&url)
             .call()
-            .expect("Request error")
+            .expect(
+                "Request error. If you are behind a firewall, perhaps using a proxy will help. \
+                Environment variables \"https_proxy\", \"http_proxy\", and \"ALL_PROXY\" are used \
+                in that order.",
+            )
             .into_string()
             .expect("Received JSON is not valid UTF8");
 
