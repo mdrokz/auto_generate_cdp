@@ -7,6 +7,8 @@ use crate::types::{Command, Event, Parameter, Protocol, TypeElement, TypeEnum};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
+include!(concat!(env!("OUT_DIR"), "/path.rs"));
+
 pub trait StringUtils {
     fn first_uppercase(&mut self);
     fn first_uppercased(self) -> Self;
@@ -391,7 +393,6 @@ fn get_types(
                 TypeEnum::Object => {
                     if let Some(properties) = typ_element.properties.as_deref() {
                         for property in properties {
-                            // println!("{:?}", property);
                             match &property.parameter_type {
                                 Some(p) => get_types(
                                     p.clone(),
@@ -1258,7 +1259,7 @@ pub fn get_events(
 }
 
 pub fn check_json(file_name: &str, commit: &str) -> Protocol {
-    if cfg!(feature = "docs-rs") || std::env::var("DOCS_RS").is_ok() {
+    if std::env::var("DOCS_RS").is_ok() {
         // code to run when building inside a docs.rs environment
 
         let path = std::env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -1268,6 +1269,15 @@ pub fn check_json(file_name: &str, commit: &str) -> Protocol {
         let protocol: Protocol = serde_json::from_str(&json).unwrap();
 
         protocol
+    } else if cfg!(feature = "offline") {
+        let path = Path::new(MANIFEST_DIR).join("json").join(file_name);
+
+        let json = std::fs::read_to_string(path).unwrap();
+
+        let protocol: Protocol = serde_json::from_str(&json).unwrap();
+
+        protocol
+
     } else {
         let ureq_agent = {
             let mut builder = ureq::AgentBuilder::new();
