@@ -24,3 +24,6 @@ serde_json = '1.0.64'
 [lib]
 name = "auto_generate_cdp"
 path = "src/lib.rs"
+
+[features]
+offline = []
