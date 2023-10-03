@@ -27,10 +27,9 @@ pub fn init() {
     file.sync_all().unwrap();
 
     if file.metadata().unwrap().len() <= 0 {
-        let (js_mods, js_events) = compile_cdp_json("./js_protocol.json", CDP_COMMIT);
+        let (js_mods, js_events) = compile_cdp_json("js_protocol.json", CDP_COMMIT);
 
-        let (browser_mods, browser_events) =
-            compile_cdp_json("./browser_protocol.json", CDP_COMMIT);
+        let (browser_mods, browser_events) = compile_cdp_json("browser_protocol.json", CDP_COMMIT);
 
         writeln!(
             file,
