@@ -7,6 +7,7 @@ use crate::types::{Command, Event, Parameter, Protocol, TypeElement, TypeEnum};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
+#[cfg(feature = "offline")]
 include!(concat!(env!("OUT_DIR"), "/path.rs"));
 
 pub trait StringUtils {
@@ -1259,6 +1260,17 @@ pub fn get_events(
 }
 
 pub fn check_json(file_name: &str, commit: &str) -> Protocol {
+    #[cfg(feature = "offline")]
+    if cfg!(feature = "offline") {
+        let path = Path::new(MANIFEST_DIR).join("json").join(file_name);
+
+        let json = std::fs::read_to_string(path).unwrap();
+
+        let protocol: Protocol = serde_json::from_str(&json).unwrap();
+
+        return protocol;
+    }
+
     if std::env::var("DOCS_RS").is_ok() {
         // code to run when building inside a docs.rs environment
 
@@ -1269,15 +1281,6 @@ pub fn check_json(file_name: &str, commit: &str) -> Protocol {
         let protocol: Protocol = serde_json::from_str(&json).unwrap();
 
         protocol
-    } else if cfg!(feature = "offline") {
-        let path = Path::new(MANIFEST_DIR).join("json").join(file_name);
-
-        let json = std::fs::read_to_string(path).unwrap();
-
-        let protocol: Protocol = serde_json::from_str(&json).unwrap();
-
-        protocol
-
     } else {
         let ureq_agent = {
             let mut builder = ureq::AgentBuilder::new();
