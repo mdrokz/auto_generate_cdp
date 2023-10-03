@@ -393,7 +393,6 @@ fn get_types(
                 TypeEnum::Object => {
                     if let Some(properties) = typ_element.properties.as_deref() {
                         for property in properties {
-                            // println!("{:?}", property);
                             match &property.parameter_type {
                                 Some(p) => get_types(
                                     p.clone(),
@@ -1271,7 +1270,6 @@ pub fn check_json(file_name: &str, commit: &str) -> Protocol {
 
         protocol
     } else if cfg!(feature = "offline") {
-        println!("The path of the generate_cdp crate is: {}", MANIFEST_DIR);
         let path = Path::new(MANIFEST_DIR).join("json").join(file_name);
 
         let json = std::fs::read_to_string(path).unwrap();
