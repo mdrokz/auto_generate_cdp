@@ -16,7 +16,7 @@ serde = {version = "1", features = ["derive"]}
 serde_json = '1'
 
 [build-dependencies]
-auto_generate_cdp = {version = "0.4.2",default-features = false}
+auto_generate_cdp = {version = "0.4.4",default-features = false}
 ```
 
 To generate the protocol, add the following to your `build/build.rs` script.
