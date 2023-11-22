@@ -113,7 +113,11 @@ pub fn init() {
         writeln!(file, "{}", modv.to_string()).unwrap();
 
         if env::var_os("DO_NOT_FORMAT").is_none() {
-            Command::new("rustfmt").arg(&out_file).output().unwrap();
+            let mut rustfmt = match env::var_os("RUSTFMT") {
+                Some(rustfmt) => Command::new(rustfmt),
+                None => Command::new("rustfmt"),
+            };
+            rustfmt.arg(&out_file).output().unwrap();
         }
     }
 }
