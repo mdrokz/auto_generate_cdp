@@ -381,7 +381,7 @@ fn get_types(
                         get_types(
                             p_type,
                             PropertyType::Element(typ_element),
-                            Some(typ_element.clone()),
+                            Some(typ_element),
                             types,
                             enums,
                             objects,
@@ -398,7 +398,7 @@ fn get_types(
                                 Some(p) => get_types(
                                     p.clone(),
                                     PropertyType::Param(property),
-                                    Some(typ_element.clone()),
+                                    Some(typ_element),
                                     types,
                                     enums,
                                     objects,
@@ -1357,7 +1357,7 @@ pub fn compile_cdp_json(file_name: &str, commit: &str) -> (Vec<TokenStream>, Vec
                 get_types(
                     type_element.type_type,
                     PropertyType::Element(type_element),
-                    Some(type_element.clone()),
+                    Some(type_element),
                     &mut types,
                     &mut enums,
                     &mut objects,
