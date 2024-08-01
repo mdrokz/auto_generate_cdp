@@ -15,7 +15,7 @@ mod compile;
 use crate::compile::compile_cdp_json;
 
 pub fn init() {
-    const CDP_COMMIT: &str = "15f524c8f5ce5b317ddcdf5e6f875d6eb8bdac88";
+    const CDP_COMMIT: &str = "62fe5c94750b18b955b1dd50c32e80764847a9c1";
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let out_file = Path::new(&out_dir).join("protocol.rs");
     let mut file = OpenOptions::new()

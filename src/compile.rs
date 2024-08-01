@@ -83,7 +83,13 @@ fn tokenize_enum(enum_vec: &Vec<String>, enum_name: String) -> (Ident, TokenStre
 
                 Ident::new(&enum_type, Span::call_site())
             } else {
-                Ident::new(&e.to_case(Case::Pascal), Span::call_site())
+                let e = e.to_case(Case::Pascal);
+                // We can't escape Self (e.g., r#Self) to be a raw identify.
+                if e == "Self" {
+                    Ident::new(&String::from("CdpSelf"), Span::call_site())
+                } else {
+                    Ident::new(&e.to_case(Case::Pascal), Span::call_site())
+                }
             };
             quote! {
                 // tend to use serde renaming to keep compatities
@@ -1339,6 +1345,14 @@ pub fn compile_cdp_json(file_name: &str, commit: &str) -> (Vec<TokenStream>, Vec
         let mut event_objects = Vec::new();
 
         let mut method_impls = Vec::new();
+
+        // FIXME - get_commands does not check returns for types needed that we need to import. 
+        // I'm adding this hack to stop yak shaving and the getting the project done.
+        if dom.domain == "PWA" {
+            dependencies.push(quote! {
+                use super::Target;
+            });
+        }
 
         if let Some(deps) = &dom.dependencies {
             for dep in deps
