@@ -66,6 +66,18 @@ enum PropertyType<'a> {
     Element(&'a TypeElement),
 }
 
+fn add_dependency(dependencies: &mut Vec<TokenStream>, dependency: &Ident) {
+    let present = dependencies
+        .iter()
+        .any(|v| v.to_string().contains(&dependency.to_string()));
+
+    if !present {
+        dependencies.push(quote! {
+            use super::#dependency;
+        });
+    }
+}
+
 fn tokenize_enum(enum_vec: &Vec<String>, enum_name: String) -> (Ident, TokenStream) {
     let enum_tokens: Vec<TokenStream> = enum_vec
         .iter()
@@ -575,6 +587,7 @@ pub fn get_commands(
                                         .map(|v| Ident::new(v, Span::call_site()))
                                         .collect::<Vec<Ident>>();
 
+                                    add_dependency(dependencies, &dep[0]);
                                     if let Some(_) = return_type.optional {
                                         let v = quote! {
                                             #[serde(skip_serializing_if="Option::is_none")]
@@ -803,20 +816,7 @@ pub fn get_parameters(
                                     .map(|v| Ident::new(v, Span::call_site()))
                                     .collect::<Vec<Ident>>();
 
-                                let v: Vec<&TokenStream> = dependencies
-                                    .iter()
-                                    .filter(|v| {
-                                        let r = ref_type.split(".").collect::<Vec<&str>>()[0];
-                                        v.to_string().contains(r)
-                                    })
-                                    .collect();
-
-                                if v.len() <= 0 {
-                                    let first_dep = &dep[0];
-                                    dependencies.push(quote! {
-                                        use super::#first_dep;
-                                    });
-                                }
+                                add_dependency(dependencies, &dep[0]);
 
                                 if let Some(_) = parameter.optional {
                                     let v = quote! {
@@ -1345,14 +1345,6 @@ pub fn compile_cdp_json(file_name: &str, commit: &str) -> (Vec<TokenStream>, Vec
         let mut event_objects = Vec::new();
 
         let mut method_impls = Vec::new();
-
-        // FIXME - get_commands does not check returns for types needed that we need to import. 
-        // I'm adding this hack to stop yak shaving and the getting the project done.
-        if dom.domain == "PWA" {
-            dependencies.push(quote! {
-                use super::Target;
-            });
-        }
 
         if let Some(deps) = &dom.dependencies {
             for dep in deps
