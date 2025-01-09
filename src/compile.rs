@@ -66,6 +66,18 @@ enum PropertyType<'a> {
     Element(&'a TypeElement),
 }
 
+fn add_dependency(dependencies: &mut Vec<TokenStream>, dependency: &Ident) {
+    let present = dependencies
+        .iter()
+        .any(|v| v.to_string().contains(&dependency.to_string()));
+
+    if !present {
+        dependencies.push(quote! {
+            use super::#dependency;
+        });
+    }
+}
+
 fn tokenize_enum(enum_vec: &Vec<String>, enum_name: String) -> (Ident, TokenStream) {
     let enum_tokens: Vec<TokenStream> = enum_vec
         .iter()
@@ -83,7 +95,13 @@ fn tokenize_enum(enum_vec: &Vec<String>, enum_name: String) -> (Ident, TokenStre
 
                 Ident::new(&enum_type, Span::call_site())
             } else {
-                Ident::new(&e.to_case(Case::Pascal), Span::call_site())
+                let e = e.to_case(Case::Pascal);
+                // We can't escape Self (e.g., r#Self) to be a raw identify.
+                if e == "Self" {
+                    Ident::new(&String::from("CdpSelf"), Span::call_site())
+                } else {
+                    Ident::new(&e.to_case(Case::Pascal), Span::call_site())
+                }
             };
             quote! {
                 // tend to use serde renaming to keep compatities
@@ -569,6 +587,7 @@ pub fn get_commands(
                                         .map(|v| Ident::new(v, Span::call_site()))
                                         .collect::<Vec<Ident>>();
 
+                                    add_dependency(dependencies, &dep[0]);
                                     if let Some(_) = return_type.optional {
                                         let v = quote! {
                                             #[serde(skip_serializing_if="Option::is_none")]
@@ -797,20 +816,7 @@ pub fn get_parameters(
                                     .map(|v| Ident::new(v, Span::call_site()))
                                     .collect::<Vec<Ident>>();
 
-                                let v: Vec<&TokenStream> = dependencies
-                                    .iter()
-                                    .filter(|v| {
-                                        let r = ref_type.split(".").collect::<Vec<&str>>()[0];
-                                        v.to_string().contains(r)
-                                    })
-                                    .collect();
-
-                                if v.len() <= 0 {
-                                    let first_dep = &dep[0];
-                                    dependencies.push(quote! {
-                                        use super::#first_dep;
-                                    });
-                                }
+                                add_dependency(dependencies, &dep[0]);
 
                                 if let Some(_) = parameter.optional {
                                     let v = quote! {
