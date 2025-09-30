@@ -7,9 +7,6 @@ use crate::types::{Command, Event, Parameter, Protocol, TypeElement, TypeEnum};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
-#[cfg(feature = "offline")]
-include!(concat!(env!("OUT_DIR"), "/path.rs"));
-
 pub trait StringUtils {
     fn first_uppercase(&mut self);
     fn first_uppercased(self) -> Self;
@@ -1250,7 +1247,12 @@ pub fn get_events(
 pub fn check_json(file_name: &str, commit: &str) -> Protocol {
     #[cfg(feature = "offline")]
     if cfg!(feature = "offline") {
-        let path = Path::new(MANIFEST_DIR).join("json").join(file_name);
+        let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+
+        #[cfg(target_os = "windows")]
+        let manifest_dir = manifest_dir.replace(r#"\"#,r#"\\"#);
+
+        let path = Path::new(&manifest_dir).join("json").join(file_name);
 
         let json = std::fs::read_to_string(path).unwrap();
 
